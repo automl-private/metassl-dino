@@ -143,22 +143,12 @@ def get_args_parser():
     return parser
 
 
-def find_free_port():
-    import socket
-    from contextlib import closing
-
-    with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
-        s.bind(("", 0))
-        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        return s.getsockname()[1]
-
-
 def dino_neps_main(working_directory, previous_working_directory, args, **hyperparameters):
     args.output_dir = working_directory
     ngpus_per_node = torch.cuda.device_count()
     print(f"Number of GPUs per node detected: {ngpus_per_node}")
-    os.environ["MASTER_ADDR"] = "localhost"
-    os.environ["MASTER_PORT"] = '29500'
+    # os.environ["MASTER_ADDR"] = "localhost"
+    # os.environ["MASTER_PORT"] = '29500'
     # os.environ["MASTER_PORT"] = str(find_free_port())
     
     if args.is_neps_run:

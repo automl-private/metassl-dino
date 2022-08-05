@@ -466,6 +466,16 @@ def get_rank():
     return dist.get_rank()
 
 
+def find_free_port():
+    import socket
+    from contextlib import closing
+
+    with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
+        s.bind(("", 0))
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        return s.getsockname()[1]
+
+
 def is_main_process():
     return get_rank() == 0
 
@@ -508,7 +518,8 @@ def init_distributed_mode(args, rank):
             print('Will run the code on one GPU.')
             args.rank, args.gpu, args.world_size = 0, 0, 1
             os.environ['MASTER_ADDR'] = '127.0.0.1'
-            os.environ['MASTER_PORT'] = '29500'
+            # os.environ['MASTER_PORT'] = '29500'
+            os.environ["MASTER_PORT"] = str(find_free_port())
         else:
             print('Does not support training without GPU.')
             sys.exit(1)
@@ -529,7 +540,8 @@ def init_distributed_mode(args, rank):
             print('Will run the code on one GPU.')
             args.rank, args.gpu, args.world_size = 0, 0, 1
             os.environ['MASTER_ADDR'] = '127.0.0.1'
-            os.environ['MASTER_PORT'] = '29500'
+            # os.environ['MASTER_PORT'] = '29500'
+            os.environ["MASTER_PORT"] = str(find_free_port())
         else:
             print('Does not support training without GPU.')
             sys.exit(1)
