@@ -545,6 +545,7 @@ def init_distributed_mode(args, rank):
         # launched naively with `python main_dino.py`
         # we manually add MASTER_ADDR and MASTER_PORT to env variables
         elif torch.cuda.is_available():
+            print("3")
             print('Will run the code on one GPU.')
             args.rank, args.gpu, args.world_size = 0, 0, 1
             os.environ['MASTER_ADDR'] = '127.0.0.1'
