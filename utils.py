@@ -509,8 +509,7 @@ def init_distributed_mode(args, rank):
             args.world_size = int(os.environ['WORLD_SIZE'])
             args.gpu = int(os.environ['LOCAL_RANK'])
             if args.gpu == 1:
-                print("test")
-                # one node runs multiple jobs and each requires a different port
+                # one node may run multiple jobs and each requires a different port
                 os.environ["MASTER_PORT"] = str(find_free_port())
         # launched with submitit on a slurm cluster
         elif 'SLURM_PROCID' in os.environ:
@@ -521,11 +520,11 @@ def init_distributed_mode(args, rank):
         # launched naively with `python main_dino.py`
         # we manually add MASTER_ADDR and MASTER_PORT to env variables
         elif torch.cuda.is_available():
-            print("3")
             print('Will run the code on one GPU.')
             args.rank, args.gpu, args.world_size = 0, 0, 1
             os.environ['MASTER_ADDR'] = '127.0.0.1'
             # os.environ['MASTER_PORT'] = '29500'
+            # one node may run multiple jobs and each requires a different port
             os.environ["MASTER_PORT"] = str(find_free_port())
         else:
             print('Does not support training without GPU.')
@@ -538,8 +537,7 @@ def init_distributed_mode(args, rank):
             args.world_size = int(os.environ['WORLD_SIZE'])
             args.gpu = int(os.environ['LOCAL_RANK'])
             if args.gpu == 1:
-                print("test")
-                # one node runs multiple jobs and each requires a different port
+                # one node may run multiple jobs and each requires a different port
                 os.environ["MASTER_PORT"] = str(find_free_port())
         elif 'SLURM_PROCID' in os.environ:
             print("2")
@@ -553,6 +551,7 @@ def init_distributed_mode(args, rank):
             args.rank, args.gpu, args.world_size = 0, 0, 1
             os.environ['MASTER_ADDR'] = '127.0.0.1'
             # os.environ['MASTER_PORT'] = '29500'
+            # one node may run multiple jobs and each requires a different port
             os.environ["MASTER_PORT"] = str(find_free_port())
         else:
             print('Does not support training without GPU.')

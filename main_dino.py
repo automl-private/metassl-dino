@@ -170,9 +170,7 @@ def dino_neps_main(working_directory, previous_working_directory, args, **hyperp
         
 
 def train_dino(rank, working_directory, previous_working_directory, args, hyperparameters=None):
-    print("hello")
     if not args.is_neps_run:
-        print("hello2")
         print(f"init distributed mode executed")
         utils.init_distributed_mode(args, rank)
     utils.fix_random_seeds(args.seed)
