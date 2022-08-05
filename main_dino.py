@@ -138,6 +138,8 @@ def get_args_parser():
     parser.add_argument("--world_size", default=8, type=int, help="default is for NEPS mode with DDP, so 8.")
     parser.add_argument("--gpu", default=8, type=int, help="default is for NEPS mode with DDP, so 8 GPUs.")
     parser.add_argument('--config_file_path', help="Should be set to a path that does not exist.")
+    parser.add_argument('--dataset', default='ImageNet', choices=['ImageNet', 'CIFAR-10', 'CIFAR-100', 'DermaMNIST'],
+                        help='Select the dataset on which you want to run the pre-training. Default is ImageNet')
     return parser
 
 
@@ -218,13 +220,14 @@ def train_dino(rank, working_directory, previous_working_directory, args, hyperp
 
     # ============ preparing data ... ============
     transform = DataAugmentationDINO(
+        args.dataset,
         args.global_crops_scale,
         args.local_crops_scale,
         args.local_crops_number,
         args.is_neps_run,
         hyperparameters,
     )
-    dataset = datasets.ImageFolder(args.data_path, transform=transform)
+    dataset = utils.get_dataset(args=args, transform=transform, mode="train", pretrain=True)
     if args.is_neps_run:
         dataset_percentage_usage = 100
         valid_size = 0.2
@@ -594,7 +597,7 @@ class DINOLoss(nn.Module):
 
 
 class DataAugmentationDINO(object):
-    def __init__(self, global_crops_scale, local_crops_scale, local_crops_number, is_neps_run, hyperparameters):
+    def __init__(self, dataset, global_crops_scale, local_crops_scale, local_crops_number, is_neps_run, hyperparameters):
         if is_neps_run:
             p_horizontal_crop_1 = hyperparameters["p_horizontal_crop_1"]
             p_colorjitter_crop_1 = hyperparameters["p_colorjitter_crop_1"]
@@ -611,15 +614,30 @@ class DataAugmentationDINO(object):
             p_horizontal_crop_1, p_colorjitter_crop_1, p_grayscale_crop_1 = 0.5, 0.8, 0.2
             p_horizontal_crop_2, p_colorjitter_crop_2, p_grayscale_crop_2 = 0.5, 0.8, 0.2
             p_horizontal_crop_3, p_colorjitter_crop_3, p_grayscale_crop_3 = 0.5, 0.8, 0.2
-            
+
+        if dataset == "ImageNet":
+            global_crop_size = 224
+            local_crop_size = 96
+            normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+        elif dataset == "CIFAR-10":
+            global_crop_size = 32
+            local_crop_size = 16  # TODO: check out!
+            normalize = transforms.Normalize(mean=[0.4914, 0.4822, 0.4465], std=[0.2023, 0.1994, 0.2010])
+        elif dataset == "CIFAR-100":
+            global_crop_size = 32
+            local_crop_size = 16  # TODO: check out!
+            normalize = transforms.Normalize(mean=(0.5071, 0.4865, 0.4409), std=(0.2673, 0.2564, 0.2762))
+        else:
+            raise NotImplementedError(f"Dataset '{args.dataset}' not implemented yet!")
+
         normalize = transforms.Compose([
             transforms.ToTensor(),
-            transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
+            normalize,
         ])
 
         # first global crop
         self.global_transfo1 = transforms.Compose([
-            transforms.RandomResizedCrop(224, scale=global_crops_scale, interpolation=Image.BICUBIC),
+            transforms.RandomResizedCrop(global_crop_size, scale=global_crops_scale, interpolation=Image.BICUBIC),
             
             transforms.RandomHorizontalFlip(p=p_horizontal_crop_1),
             transforms.RandomApply(
@@ -633,7 +651,7 @@ class DataAugmentationDINO(object):
         ])
         # second global crop
         self.global_transfo2 = transforms.Compose([
-            transforms.RandomResizedCrop(224, scale=global_crops_scale, interpolation=Image.BICUBIC),
+            transforms.RandomResizedCrop(global_crop_size, scale=global_crops_scale, interpolation=Image.BICUBIC),
     
             transforms.RandomHorizontalFlip(p=p_horizontal_crop_2),
             transforms.RandomApply(
@@ -649,7 +667,7 @@ class DataAugmentationDINO(object):
         # transformation for the local small crops
         self.local_crops_number = local_crops_number
         self.local_transfo = transforms.Compose([
-            transforms.RandomResizedCrop(96, scale=local_crops_scale, interpolation=Image.BICUBIC),
+            transforms.RandomResizedCrop(local_crop_size, scale=local_crops_scale, interpolation=Image.BICUBIC),
     
             transforms.RandomHorizontalFlip(p=p_horizontal_crop_3),
             transforms.RandomApply(

@@ -67,27 +67,42 @@ def eval_linear(args):
     linear_classifier = nn.parallel.DistributedDataParallel(linear_classifier, device_ids=[args.gpu])
 
     # ============ preparing data ... ============
+    if args.dataset == "ImageNet":
+        train_crop_size = 224
+        val_crop_size = 256
+        normalize = pth_transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+    elif args.dataset == "CIFAR-10":
+        train_crop_size = 32
+        val_crop_size = int(32 * 8 / 7)  # TODO: check out!
+        normalize = pth_transforms.Normalize(mean=[0.4914, 0.4822, 0.4465], std=[0.2023, 0.1994, 0.2010])
+    elif args.dataset == "CIFAR-100":
+        train_crop_size = 32
+        val_crop_size = int(32 * 8 / 7)  # TODO: check out!
+        normalize = pth_transforms.Normalize(mean=[0.5071, 0.4865, 0.4409], std=[0.2673, 0.2564, 0.2762])
+    else:
+        raise NotImplementedError(f"Dataset '{args.dataset}' not implemented yet!")
 
     train_transform = pth_transforms.Compose([
-        pth_transforms.RandomResizedCrop(224),
+        pth_transforms.RandomResizedCrop(train_crop_size),
         pth_transforms.RandomHorizontalFlip(),
         pth_transforms.ToTensor(),
-        pth_transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
+        normalize,
     ])
 
     val_transform = pth_transforms.Compose([
-        pth_transforms.Resize(256, interpolation=3),
-        pth_transforms.CenterCrop(224),
+        pth_transforms.Resize(val_crop_size, interpolation=3),
+        pth_transforms.CenterCrop(train_crop_size),
         pth_transforms.ToTensor(),
-        pth_transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
+        normalize,
     ])
 
-    dataset_train = datasets.ImageFolder(os.path.join(args.data_path, "train"), transform=train_transform)
+    dataset_train = utils.get_dataset(args=args, transform=train_transform, mode="train")
+
     if args.is_neps_run:
-        dataset_val = datasets.ImageFolder(os.path.join(args.data_path, "train"), transform=val_transform)
+        dataset_val = utils.get_dataset(args=args, transform=val_transform, mode="train")
         
         dataset_percentage_usage = 100
-        valid_size = 0.2
+        valid_size = 0.2  # TODO: check out! For CIFAR-10 I would use 0.1. For balanced ImageNet 0.1 might also be fine?
         num_train = int(len(dataset_train) / 100 * dataset_percentage_usage)
         indices = list(range(num_train))
         split = int(np.floor(valid_size * num_train))
@@ -105,7 +120,7 @@ def eval_linear(args):
         valid_sampler = torch.utils.data.distributed.DistributedSampler(valid_idx)
     
     else:
-        dataset_val = datasets.ImageFolder(os.path.join(args.data_path, "val"), transform=val_transform)
+        dataset_val = utils.get_dataset(args=args, transform=val_transform, mode="val")
         sampler = torch.utils.data.distributed.DistributedSampler(dataset_train)
     
     train_loader = torch.utils.data.DataLoader(
@@ -337,6 +352,8 @@ if __name__ == '__main__':
     parser.add_argument("--gpu", default=8, type=int, help="actually not needed here -- just for avoiding unrecognized arguments error")
     parser.add_argument('--config_file_path', help="actually not needed here -- just for avoiding unrecognized arguments error")
     parser.add_argument('--seed', default=0, type=int, help='Random seed.')
+    parser.add_argument('--dataset', default='ImageNet', choices=['ImageNet', 'CIFAR-10', 'CIFAR-100', 'DermaMNIST'],
+                        help='Select the dataset on which you want to run the pre-training. Default is ImageNet')
     
     args = parser.parse_args()
     eval_linear(args)

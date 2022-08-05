@@ -31,6 +31,7 @@ import torch
 from torch import nn
 import torch.distributed as dist
 from PIL import ImageFilter, ImageOps
+from torchvision import datasets
 
 
 class GaussianBlur(object):
@@ -66,6 +67,31 @@ class Solarization(object):
             return ImageOps.solarize(img)
         else:
             return img
+
+
+def get_dataset(args, transform, mode, pretrain=False):
+    if args.dataset == "ImageNet":
+        if pretrain:
+            dataset = datasets.ImageFolder(args.data_path, transform=transform)
+        else:
+            dataset = datasets.ImageFolder(os.path.join(args.data_path, mode), transform=transform)
+    elif args.dataset == "CIFAR-10":
+        dataset = datasets.CIFAR10(
+            root="datasets/CIFAR10",
+            train=True if mode == "train" else False,
+            download=True,
+            transform=transform,
+        )
+    elif args.dataset == "CIFAR-100":
+        dataset = datasets.CIFAR100(
+            root="datasets/CIFAR100",
+            train=True if mode == "train" else False,
+            download=True,
+            transform=transform,
+        )
+    else:
+        raise NotImplementedError(f"Dataset '{args.dataset}' not implemented yet!")
+    return dataset
 
 
 def load_pretrained_weights(model, pretrained_weights, checkpoint_key, model_name, patch_size):
