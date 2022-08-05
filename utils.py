@@ -508,6 +508,7 @@ def init_distributed_mode(args, rank):
             args.world_size = int(os.environ['WORLD_SIZE'])
             args.gpu = int(os.environ['LOCAL_RANK'])
             if args.gpu == 1:
+                print("test")
                 # one node runs multiple jobs and each requires a different port
                 os.environ["MASTER_PORT"] = str(find_free_port())
         # launched with submitit on a slurm cluster
@@ -534,6 +535,7 @@ def init_distributed_mode(args, rank):
             args.world_size = int(os.environ['WORLD_SIZE'])
             args.gpu = int(os.environ['LOCAL_RANK'])
             if args.gpu == 1:
+                print("test")
                 # one node runs multiple jobs and each requires a different port
                 os.environ["MASTER_PORT"] = str(find_free_port())
         elif 'SLURM_PROCID' in os.environ:
