@@ -530,7 +530,7 @@ def init_distributed_mode(args, rank):
     else:
         # launched with torch.distributed.launch
         if 'RANK' in os.environ and 'WORLD_SIZE' in os.environ:
-            # print("1")
+            print("1")
             args.rank = int(os.environ["RANK"])
             args.world_size = int(os.environ['WORLD_SIZE'])
             args.gpu = int(os.environ['LOCAL_RANK'])
@@ -539,7 +539,7 @@ def init_distributed_mode(args, rank):
                 # one node runs multiple jobs and each requires a different port
                 os.environ["MASTER_PORT"] = str(find_free_port())
         elif 'SLURM_PROCID' in os.environ:
-            # print("2")
+            print("2")
             args.rank = int(os.environ['SLURM_PROCID'])
             args.gpu = args.rank % torch.cuda.device_count()
         # launched naively with `python main_dino.py`
