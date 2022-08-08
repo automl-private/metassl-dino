@@ -466,16 +466,6 @@ def get_rank():
     return dist.get_rank()
 
 
-def find_free_port():
-    import socket
-    from contextlib import closing
-
-    with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
-        s.bind(("", 0))
-        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        return s.getsockname()[1]
-
-
 def is_main_process():
     return get_rank() == 0
 
@@ -504,13 +494,10 @@ def init_distributed_mode(args, rank):
     print(os.environ)
     if args.is_neps_run:
         if 'RANK' in os.environ and 'WORLD_SIZE' in os.environ:
-            print("1")
+            # print("1")
             args.rank = int(os.environ["RANK"])
             args.world_size = int(os.environ['WORLD_SIZE'])
             args.gpu = int(os.environ['LOCAL_RANK'])
-            if args.gpu == 1:
-                # one node may run multiple jobs and each requires a different port
-                os.environ["MASTER_PORT"] = str(find_free_port())
         # launched with submitit on a slurm cluster
         elif 'SLURM_PROCID' in os.environ:
             print("2")
@@ -523,41 +510,34 @@ def init_distributed_mode(args, rank):
             print('Will run the code on one GPU.')
             args.rank, args.gpu, args.world_size = 0, 0, 1
             os.environ['MASTER_ADDR'] = '127.0.0.1'
-            # os.environ['MASTER_PORT'] = '29500'
-            # one node may run multiple jobs and each requires a different port
-            os.environ["MASTER_PORT"] = str(find_free_port())
+            os.environ['MASTER_PORT'] = '29500'
         else:
             print('Does not support training without GPU.')
             sys.exit(1)
     else:
         # launched with torch.distributed.launch
         if 'RANK' in os.environ and 'WORLD_SIZE' in os.environ:
-            print("1")
+            # print("1")
             args.rank = int(os.environ["RANK"])
             args.world_size = int(os.environ['WORLD_SIZE'])
             args.gpu = int(os.environ['LOCAL_RANK'])
-            if args.gpu == 1:
-                # one node may run multiple jobs and each requires a different port
-                os.environ["MASTER_PORT"] = str(find_free_port())
         elif 'SLURM_PROCID' in os.environ:
-            print("2")
+            # print("2")
             args.rank = int(os.environ['SLURM_PROCID'])
             args.gpu = args.rank % torch.cuda.device_count()
         # launched naively with `python main_dino.py`
         # we manually add MASTER_ADDR and MASTER_PORT to env variables
         elif torch.cuda.is_available():
-            print("3")
+            # print("3")
             print('Will run the code on one GPU.')
             args.rank, args.gpu, args.world_size = 0, 0, 1
             os.environ['MASTER_ADDR'] = '127.0.0.1'
-            # os.environ['MASTER_PORT'] = '29500'
-            # one node may run multiple jobs and each requires a different port
-            os.environ["MASTER_PORT"] = str(find_free_port())
+            os.environ['MASTER_PORT'] = '29500'
         else:
             print('Does not support training without GPU.')
             sys.exit(1)
         
-    # print("invoking init_process_group")
+    print("invoking init_process_group")
     # print(args.dist_url, args.world_size, args.rank)
     dist.init_process_group(
         backend="nccl",
@@ -565,7 +545,6 @@ def init_distributed_mode(args, rank):
         world_size=args.world_size,
         rank=args.rank,
     )
-    # print("invoking done")
 
     torch.cuda.set_device(args.gpu)
     print('| distributed init (rank {}): {}'.format(

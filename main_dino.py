@@ -147,9 +147,6 @@ def dino_neps_main(working_directory, previous_working_directory, args, **hyperp
     args.output_dir = working_directory
     ngpus_per_node = torch.cuda.device_count()
     print(f"Number of GPUs per node detected: {ngpus_per_node}")
-    # os.environ["MASTER_ADDR"] = "localhost"
-    # os.environ["MASTER_PORT"] = '29500'
-    # os.environ["MASTER_PORT"] = str(find_free_port())
     
     if args.is_neps_run:
         try:
@@ -166,6 +163,7 @@ def dino_neps_main(working_directory, previous_working_directory, args, **hyperp
         return 0
     else:
         os.environ["WORLD_SIZE"] = str(args.world_size)
+        print("test")
         train_dino(None, args.output_dir, args.output_dir, args)
         
 
