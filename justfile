@@ -14,7 +14,7 @@
 @cifar10_pt EXPERIMENT_NAME SEED:
   #!/usr/bin/env bash
   mkdir -p /work/dlclarge2/wagnerd-metassl-experiments/dino/CIFAR-10/{{EXPERIMENT_NAME}}/cluster_oe/
-  sbatch --output=/work/dlclarge2/wagnerd-metassl-experiments/dino/CIFAR-10/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --error=/work/dlclarge2/wagnerd-metassl-experiments/dino/CIFAR-10/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --export=EXPERIMENT_NAME={{EXPERIMENT_NAME}},SEED={{SEED}} cluster/submit_cifar10_dino_pretraining.sh
+  sbatch --exclude=dlcgpu16,dlcgpu17 --output=/work/dlclarge2/wagnerd-metassl-experiments/dino/CIFAR-10/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --error=/work/dlclarge2/wagnerd-metassl-experiments/dino/CIFAR-10/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --export=EXPERIMENT_NAME={{EXPERIMENT_NAME}},SEED={{SEED}} cluster/submit_cifar10_dino_pretraining.sh
 
 # Run linear DINO evaluation for CIFAR-10 locally (Diane)
 @cifar10_eval_local EXPERIMENT_NAME EPOCHS:
@@ -25,7 +25,7 @@
 @cifar10_eval EXPERIMENT_NAME SEED:
   #!/usr/bin/env bash
   mkdir -p /work/dlclarge2/wagnerd-metassl-experiments/dino/CIFAR-10/{{EXPERIMENT_NAME}}/cluster_oe/
-  sbatch --output=/work/dlclarge2/wagnerd-metassl-experiments/dino/CIFAR-10/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --error=/work/dlclarge2/wagnerd-metassl-experiments/dino/CIFAR-10/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --export=EXPERIMENT_NAME={{EXPERIMENT_NAME}},SEED={{SEED}} cluster/submit_cifar10_dino_linear_evaluation.sh
+  sbatch --exclude=dlcgpu05,dlcgpu29,dlcgpu09 --output=/work/dlclarge2/wagnerd-metassl-experiments/dino/CIFAR-10/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --error=/work/dlclarge2/wagnerd-metassl-experiments/dino/CIFAR-10/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --export=EXPERIMENT_NAME={{EXPERIMENT_NAME}},SEED={{SEED}} cluster/submit_cifar10_dino_linear_evaluation.sh
 
 # ---------------------------------------------------------------------------------------
 # CIFAR-100 (DIANE)
@@ -39,7 +39,7 @@
 @cifar100_pt EXPERIMENT_NAME SEED:
   #!/usr/bin/env bash
   mkdir -p /work/dlclarge2/wagnerd-metassl-experiments/dino/CIFAR-100/{{EXPERIMENT_NAME}}/cluster_oe/
-  sbatch --output=/work/dlclarge2/wagnerd-metassl-experiments/dino/CIFAR-100/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --error=/work/dlclarge2/wagnerd-metassl-experiments/dino/CIFAR-100/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --export=EXPERIMENT_NAME={{EXPERIMENT_NAME}},SEED={{SEED}} cluster/submit_cifar100_dino_pretraining.sh
+  sbatch --exclude=dlcgpu17,dlcgpu29,dlcgpu09,dlcgpu14 --output=/work/dlclarge2/wagnerd-metassl-experiments/dino/CIFAR-100/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --error=/work/dlclarge2/wagnerd-metassl-experiments/dino/CIFAR-100/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --export=EXPERIMENT_NAME={{EXPERIMENT_NAME}},SEED={{SEED}} cluster/submit_cifar100_dino_pretraining.sh
 
 # Run linear DINO evaluation for CIFAR-100 locally (Diane)
 @cifar100_eval_local EXPERIMENT_NAME EPOCHS:
