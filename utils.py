@@ -494,11 +494,13 @@ def init_distributed_mode(args, rank):
     print(os.environ)
     if args.is_neps_run:
         if 'RANK' in os.environ and 'WORLD_SIZE' in os.environ:
+            # print("1")
             args.rank = int(os.environ["RANK"])
             args.world_size = int(os.environ['WORLD_SIZE'])
             args.gpu = int(os.environ['LOCAL_RANK'])
         # launched with submitit on a slurm cluster
         elif 'SLURM_PROCID' in os.environ:
+            print("2")
             # args.rank = int(os.environ['SLURM_PROCID'])
             args.rank = rank
             args.gpu = args.rank % torch.cuda.device_count()
@@ -526,6 +528,7 @@ def init_distributed_mode(args, rank):
         # launched naively with `python main_dino.py`
         # we manually add MASTER_ADDR and MASTER_PORT to env variables
         elif torch.cuda.is_available():
+            # print("3")
             print('Will run the code on one GPU.')
             args.rank, args.gpu, args.world_size = 0, 0, 1
             os.environ['MASTER_ADDR'] = '127.0.0.1'
@@ -534,7 +537,7 @@ def init_distributed_mode(args, rank):
             print('Does not support training without GPU.')
             sys.exit(1)
         
-    # print("invoking init_process_group")
+    print("invoking init_process_group")
     # print(args.dist_url, args.world_size, args.rank)
     dist.init_process_group(
         backend="nccl",
@@ -542,7 +545,6 @@ def init_distributed_mode(args, rank):
         world_size=args.world_size,
         rank=args.rank,
     )
-    # print("invoking done")
 
     torch.cuda.set_device(args.gpu)
     print('| distributed init (rank {}): {}'.format(
