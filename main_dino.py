@@ -441,6 +441,8 @@ def train_dino(rank, working_directory, previous_working_directory, args, hyperp
             finetuning_parser.add_argument("--world_size", default=8, type=int, help="actually not needed here -- just for avoiding unrecognized arguments error")
             finetuning_parser.add_argument("--gpu", default=8, type=int, help="actually not needed here -- just for avoiding unrecognized arguments error")
             finetuning_parser.add_argument('--config_file_path', help="actually not needed here -- just for avoiding unrecognized arguments error")
+            finetuning_parser.add_argument('--dataset', default='ImageNet', choices=['ImageNet', 'CIFAR-10', 'CIFAR-100', 'DermaMNIST'], help='Select the dataset on which you want to run the pre-training. Default is ImageNet')
+            finetuning_parser.add_argument('--saveckp_freq', default=20, type=int, help='Save checkpoint every x epochs.')
             finetuning_args = finetuning_parser.parse_args()
             
             finetuning_args.arch = args.arch
@@ -448,12 +450,13 @@ def train_dino(rank, working_directory, previous_working_directory, args, hyperp
             finetuning_args.output_dir = args.output_dir
             finetuning_args.is_neps_run = args.is_neps_run
             finetuning_args.gpu = args.gpu
-            finetuning_args.saveckp_freq = 10
+            finetuning_args.saveckp_freq = args.saveckp_freq
             finetuning_args.pretrained_weights = str(finetuning_args.output_dir) + "/checkpoint.pth"
             finetuning_args.seed = args.seed 
             finetuning_args.assert_valid_idx = valid_idx[:10]
             finetuning_args.assert_train_idx = train_idx[:10]
-            
+
+            finetuning_args.dataset = args.dataset
             finetuning_args.epochs = 100  # TODO: args.epochs
             finetuning_args.epoch_fidelity = hyperparameters["epoch_fidelity"]
             
