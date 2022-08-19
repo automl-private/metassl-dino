@@ -33,6 +33,8 @@ import torch.nn.functional as F
 import torch.multiprocessing as mp
 from torchvision import datasets, transforms
 from torchvision import models as torchvision_models
+
+from configspaces import get_pipeline_space
 from eval_linear import eval_linear
 
 import utils
@@ -124,6 +126,10 @@ def get_args_parser():
 
     # NEPS
     parser.add_argument("--is_neps_run", action="store_true", help="Set this flag to run a NEPS experiment.")
+    parser.add_argument("--config_space", default="data_augmentation",
+                        choices=["data_augmentation", "training"],
+                        help="Select the configspace you want to optimize with NEPS")
+    parser.add_argument("--is_multifidelity_run", action="store_true", help="Store true if you want to activate multifidelity for NEPS")
 
     # Misc
     parser.add_argument('--data_path', default='/path/to/imagenet/train/', type=str,
@@ -185,23 +191,26 @@ def train_dino(rank, working_directory, previous_working_directory, args, hyperp
             else:
                 print(f"{k} : {v}) \n")
                 
-        print("NEPS hyperparameters: ", hyperparameters)
+        print("NEPS training hyperparameters: ", hyperparameters)
         
         # Parameterize hyperparameters
-        args.lr = hyperparameters["lr"]
-        args.out_dim = hyperparameters["out_dim"]
-        args.momentum_teacher = hyperparameters["momentum_teacher"]
-        args.warmup_teacher_temp = hyperparameters["warmup_teacher_temp"]
-        args.warmup_teacher_temp_epochs = hyperparameters["warmup_teacher_temp_epochs"]
-        args.weight_decay = hyperparameters["weight_decay"]
-        args.weight_decay_end = hyperparameters["weight_decay_end"]
-        args.freeze_last_layer = hyperparameters["freeze_last_layer"]
-        args.warmup_epochs = hyperparameters["warmup_epochs"]
-        args.min_lr = hyperparameters["min_lr"]
-        args.drop_path_rate = hyperparameters["drop_path_rate"]
-        args.optimizer = hyperparameters["optimizer"]
-        args.use_bn_in_head = hyperparameters["use_bn_in_head"]
-        args.norm_last_layer = hyperparameters["norm_last_layer"]
+        if args.config_space == "training":
+            args.lr = hyperparameters["lr"]
+            args.out_dim = hyperparameters["out_dim"]
+            args.momentum_teacher = hyperparameters["momentum_teacher"]
+            args.warmup_teacher_temp = hyperparameters["warmup_teacher_temp"]
+            args.warmup_teacher_temp_epochs = hyperparameters["warmup_teacher_temp_epochs"]
+            args.weight_decay = hyperparameters["weight_decay"]
+            args.weight_decay_end = hyperparameters["weight_decay_end"]
+            args.freeze_last_layer = hyperparameters["freeze_last_layer"]
+            args.warmup_epochs = hyperparameters["warmup_epochs"]
+            args.min_lr = hyperparameters["min_lr"]
+            args.drop_path_rate = hyperparameters["drop_path_rate"]
+            args.optimizer = hyperparameters["optimizer"]
+            # args.use_bn_in_head = hyperparameters["use_bn_in_head"]
+            # args.norm_last_layer = hyperparameters["norm_last_layer"]
+        elif args.config_space == "data_augmentation":
+            args.local_crops_number = hyperparameters["local_crops_number"]
         
     else:
         print("\n".join("%s: %s" % (k, str(v)) for k, v in sorted(dict(vars(args)).items())))
@@ -214,6 +223,7 @@ def train_dino(rank, working_directory, previous_working_directory, args, hyperp
         args.local_crops_number,
         args.is_neps_run,
         hyperparameters,
+        args.config_space,
     )
     dataset = utils.get_dataset(args=args, transform=transform, mode="train", pretrain=True)
     if args.is_neps_run:
@@ -372,7 +382,7 @@ def train_dino(rank, working_directory, previous_working_directory, args, hyperp
     start_time = time.time()
     print("Starting DINO training !")
     
-    if args.is_neps_run:
+    if args.is_neps_run and args.is_multifidelity_run:
         end_epoch = hyperparameters["epoch_fidelity"]
     else:
         end_epoch = args.epochs
@@ -437,25 +447,31 @@ def train_dino(rank, working_directory, previous_working_directory, args, hyperp
             finetuning_parser.add_argument('--num_labels', default=1000, type=int, help='Number of labels for linear classifier')
             finetuning_parser.add_argument('--evaluate', dest='evaluate', action='store_true', help='evaluate model on validation set')
             finetuning_parser.add_argument("--is_neps_run", action="store_true", help="Set this flag to run a NEPS experiment.")
+            finetuning_parser.add_argument("--config_space", default="data_augmentation", choices=["data_augmentation", "training"], help="Select the configspace you want to optimize with NEPS")
             finetuning_parser.add_argument("--do_early_stopping", action="store_true", help="Set this flag to take the best test performance - Default by the DINO implementation.")
             finetuning_parser.add_argument("--world_size", default=8, type=int, help="actually not needed here -- just for avoiding unrecognized arguments error")
             finetuning_parser.add_argument("--gpu", default=8, type=int, help="actually not needed here -- just for avoiding unrecognized arguments error")
             finetuning_parser.add_argument('--config_file_path', help="actually not needed here -- just for avoiding unrecognized arguments error")
+            finetuning_parser.add_argument('--dataset', default='ImageNet', choices=['ImageNet', 'CIFAR-10', 'CIFAR-100', 'DermaMNIST'], help='Select the dataset on which you want to run the pre-training. Default is ImageNet')
+            finetuning_parser.add_argument('--saveckp_freq', default=20, type=int, help='Save checkpoint every x epochs.')
             finetuning_args = finetuning_parser.parse_args()
             
             finetuning_args.arch = args.arch
             finetuning_args.data_path = "/data/datasets/ImageNet/imagenet-pytorch/"
             finetuning_args.output_dir = args.output_dir
             finetuning_args.is_neps_run = args.is_neps_run
+            finetuning_args.config_space = args.config_space
             finetuning_args.gpu = args.gpu
-            finetuning_args.saveckp_freq = 10
+            finetuning_args.saveckp_freq = args.saveckp_freq
             finetuning_args.pretrained_weights = str(finetuning_args.output_dir) + "/checkpoint.pth"
             finetuning_args.seed = args.seed 
             finetuning_args.assert_valid_idx = valid_idx[:10]
             finetuning_args.assert_train_idx = train_idx[:10]
-            
-            finetuning_args.epochs = 100  # TODO: args.epochs
-            finetuning_args.epoch_fidelity = hyperparameters["epoch_fidelity"]
+
+            finetuning_args.dataset = args.dataset
+            finetuning_args.epochs = 10
+            if args.is_multifidelity_run:
+                finetuning_args.epoch_fidelity = hyperparameters["epoch_fidelity"]
             
             eval_linear(finetuning_args)
             
@@ -585,23 +601,54 @@ class DINOLoss(nn.Module):
 
 
 class DataAugmentationDINO(object):
-    def __init__(self, dataset, global_crops_scale, local_crops_scale, local_crops_number, is_neps_run, hyperparameters):
-        if is_neps_run:
+    def __init__(self, dataset, global_crops_scale, local_crops_scale, local_crops_number, is_neps_run, hyperparameters=None, config_space=None):
+        if is_neps_run and config_space == "data_augmentation":
+            crops_scale_boundary = hyperparameters["crops_scale_boundary"]
+            global_crops_scale = (crops_scale_boundary, global_crops_scale[1])
+            local_crops_scale = (local_crops_scale[0], crops_scale_boundary)
+            local_crops_number = hyperparameters["local_crops_number"]
+
             p_horizontal_crop_1 = hyperparameters["p_horizontal_crop_1"]
             p_colorjitter_crop_1 = hyperparameters["p_colorjitter_crop_1"]
             p_grayscale_crop_1 = hyperparameters["p_grayscale_crop_1"]
+            p_gaussianblur_crop_1 = hyperparameters["p_gaussianblur_crop_1"]
+            p_solarize_crop_1 = hyperparameters["p_solarize_crop_1"]
             
             p_horizontal_crop_2 = hyperparameters["p_horizontal_crop_2"]
             p_colorjitter_crop_2 = hyperparameters["p_colorjitter_crop_2"]
             p_grayscale_crop_2 = hyperparameters["p_grayscale_crop_2"]
+            p_gaussianblur_crop_2 = hyperparameters["p_gaussianblur_crop_2"]
+            p_solarize_crop_2 = hyperparameters["p_solarize_crop_2"]
     
             p_horizontal_crop_3 = hyperparameters["p_horizontal_crop_3"]
             p_colorjitter_crop_3 = hyperparameters["p_colorjitter_crop_3"]
             p_grayscale_crop_3 = hyperparameters["p_grayscale_crop_3"]
+            p_gaussianblur_crop_3 = hyperparameters["p_gaussianblur_crop_3"]
+            p_solarize_crop_3 = hyperparameters["p_solarize_crop_3"]
+
+            print("\n\nNEPS DATA AUGMENTATION HYPERPARAMETERS:\n")
+            print(f"global_crops_scale: {global_crops_scale}")
+            print(f"local_crops_scale: {local_crops_scale}")
+            print(f"local_crops_number: {local_crops_number}")
+            print(f"p_horizontal_crop_1: {p_horizontal_crop_1}")
+            print(f"p_colorjitter_crop_1: {p_colorjitter_crop_1}")
+            print(f"p_grayscale_crop_1: {p_grayscale_crop_1}")
+            print(f"p_gaussianblur_crop_1: {p_gaussianblur_crop_1}")
+            print(f"p_solarize_crop_1: {p_solarize_crop_1}")
+            print(f"p_horizontal_crop_2: {p_horizontal_crop_2}")
+            print(f"p_colorjitter_crop_2: {p_colorjitter_crop_2}")
+            print(f"p_grayscale_crop_2: {p_grayscale_crop_2}")
+            print(f"p_gaussianblur_crop_2: {p_gaussianblur_crop_2}")
+            print(f"p_solarize_crop_2: {p_solarize_crop_2}")
+            print(f"p_horizontal_crop_3: {p_horizontal_crop_3}")
+            print(f"p_colorjitter_crop_3: {p_colorjitter_crop_3}")
+            print(f"p_grayscale_crop_3: {p_grayscale_crop_3}")
+            print(f"p_gaussianblur_crop_3: {p_gaussianblur_crop_3}")
+            print(f"p_solarize_crop_3: {p_solarize_crop_3}")
         else:
-            p_horizontal_crop_1, p_colorjitter_crop_1, p_grayscale_crop_1 = 0.5, 0.8, 0.2
-            p_horizontal_crop_2, p_colorjitter_crop_2, p_grayscale_crop_2 = 0.5, 0.8, 0.2
-            p_horizontal_crop_3, p_colorjitter_crop_3, p_grayscale_crop_3 = 0.5, 0.8, 0.2
+            p_horizontal_crop_1, p_colorjitter_crop_1, p_grayscale_crop_1, p_gaussianblur_crop_1, p_solarize_crop_1 = 0.5, 0.8, 0.2, 1.0, 0.0
+            p_horizontal_crop_2, p_colorjitter_crop_2, p_grayscale_crop_2, p_gaussianblur_crop_2, p_solarize_crop_2 = 0.5, 0.8, 0.2, 0.1, 0.2
+            p_horizontal_crop_3, p_colorjitter_crop_3, p_grayscale_crop_3, p_gaussianblur_crop_3, p_solarize_crop_3 = 0.5, 0.8, 0.2, 0.5, 0.0
 
         if dataset == "ImageNet":
             global_crop_size = 224
@@ -609,11 +656,11 @@ class DataAugmentationDINO(object):
             normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
         elif dataset == "CIFAR-10":
             global_crop_size = 32
-            local_crop_size = 16  # TODO: check out!
+            local_crop_size = 16
             normalize = transforms.Normalize(mean=[0.4914, 0.4822, 0.4465], std=[0.2023, 0.1994, 0.2010])
         elif dataset == "CIFAR-100":
             global_crop_size = 32
-            local_crop_size = 16  # TODO: check out!
+            local_crop_size = 16
             normalize = transforms.Normalize(mean=(0.5071, 0.4865, 0.4409), std=(0.2673, 0.2564, 0.2762))
         else:
             raise NotImplementedError(f"Dataset '{args.dataset}' not implemented yet!")
@@ -634,7 +681,8 @@ class DataAugmentationDINO(object):
                 ),
             transforms.RandomGrayscale(p=p_grayscale_crop_1),
             
-            utils.GaussianBlur(1.0),
+            utils.GaussianBlur(p=p_gaussianblur_crop_1),  # default: 1.0
+            utils.Solarization(p=p_solarize_crop_1),  # default: 0.0
             normalize,
         ])
         # second global crop
@@ -648,8 +696,8 @@ class DataAugmentationDINO(object):
                 ),
             transforms.RandomGrayscale(p=p_grayscale_crop_2),
             
-            utils.GaussianBlur(0.1),
-            utils.Solarization(0.2),
+            utils.GaussianBlur(p=p_gaussianblur_crop_2),  # default: 0.1
+            utils.Solarization(p=p_solarize_crop_2),  # default: 0.2
             normalize,
         ])
         # transformation for the local small crops
@@ -664,7 +712,8 @@ class DataAugmentationDINO(object):
                 ),
             transforms.RandomGrayscale(p=p_grayscale_crop_3),
             
-            utils.GaussianBlur(p=0.5),
+            utils.GaussianBlur(p=p_gaussianblur_crop_3),  # default: 0.5
+            utils.Solarization(p=p_solarize_crop_3),  # default: 0.0
             normalize,
         ])
 
@@ -689,78 +738,7 @@ if __name__ == '__main__':
             level=logging.INFO,
             format="%(asctime)s %(levelname)-8s [%(name)s] %(message)s",
         )
-        pipeline_space = dict(
-                    lr=neps.FloatParameter(
-                        lower=0.00001, upper=0.01, log=True, default=0.0005, default_confidence="high"
-                    ),
-                    out_dim=neps.IntegerParameter(
-                        lower=1000, upper=100000, log=False, default=65536, default_confidence="high"
-                    ),
-                    momentum_teacher=neps.FloatParameter(
-                        lower=0.8, upper=1, log=True, default=0.996, default_confidence="high"
-                    ),
-                    warmup_teacher_temp=neps.FloatParameter(
-                        lower=0.001, upper=0.1, log=True, default=0.04, default_confidence="high"
-                    ),
-                    warmup_teacher_temp_epochs=neps.IntegerParameter(
-                        lower=0, upper=50, log=False, default=0, default_confidence="high"
-                    ),
-                    weight_decay=neps.FloatParameter( # todo: decrease or try-except with loss=0
-                        lower=0.001, upper=0.5, log=True, default=0.04, default_confidence="high"
-                    ),
-                    weight_decay_end=neps.FloatParameter(
-                        lower=0.001, upper=0.5, log=True, default=0.4, default_confidence="high"
-                    ),
-                    freeze_last_layer=neps.IntegerParameter(
-                        lower=0, upper=10, log=False, default=1, default_confidence="high"
-                    ),
-                    warmup_epochs=neps.IntegerParameter(
-                        lower=0, upper=50, log=False, default=10, default_confidence="high"
-                    ),
-                    min_lr=neps.FloatParameter(
-                        lower=1e-7, upper=1e-5, log=True, default=1e-6, default_confidence="high"
-                    ),
-                    drop_path_rate=neps.FloatParameter(
-                        lower=0.01, upper=0.5, log=False, default=0.1, default_confidence="high"
-                    ),
-                    optimizer=neps.CategoricalParameter(
-                        choices=['adamw', 'sgd', 'lars'], default='adamw', default_confidence="high"
-                    ),
-                    use_bn_in_head=neps.CategoricalParameter(
-                        choices=[True, False], default=False, default_confidence="high"
-                    ),
-                    norm_last_layer=neps.CategoricalParameter(
-                        choices=[True, False], default=True, default_confidence="high"
-                    ),
-                    p_horizontal_crop_1=neps.FloatParameter(
-                        lower=0., upper=1., log=False, default=0.5, default_confidence="high"
-                    ),
-                    p_colorjitter_crop_1=neps.FloatParameter(
-                        lower=0., upper=1., log=False, default=0.8, default_confidence="high"
-                    ),
-                    p_grayscale_crop_1=neps.FloatParameter(
-                        lower=0., upper=1., log=False, default=0.2, default_confidence="high"
-                    ),
-                    p_horizontal_crop_2=neps.FloatParameter(
-                        lower=0., upper=1., log=False, default=0.5, default_confidence="high"
-                    ),
-                    p_colorjitter_crop_2=neps.FloatParameter(
-                        lower=0., upper=1., log=False, default=0.8, default_confidence="high"
-                    ),
-                    p_grayscale_crop_2=neps.FloatParameter(
-                        lower=0., upper=1., log=False, default=0.2, default_confidence="high"
-                    ),
-                    p_horizontal_crop_3=neps.FloatParameter(
-                        lower=0., upper=1., log=False, default=0.5, default_confidence="high"
-                    ),
-                    p_colorjitter_crop_3=neps.FloatParameter(
-                        lower=0., upper=1., log=False, default=0.8, default_confidence="high"
-                    ),
-                    p_grayscale_crop_3=neps.FloatParameter(
-                        lower=0., upper=1., log=False, default=0.2, default_confidence="high"
-                    ),
-                    epoch_fidelity=neps.IntegerParameter(lower=1, upper=args.epochs, is_fidelity=True),
-                )
+        pipeline_space = get_pipeline_space(args)
        
         #dino_neps_main = partial(dino_neps_main, args=args)
         def main():
@@ -788,14 +766,18 @@ if __name__ == '__main__':
             
         
         if torch.distributed.get_rank() == 0:
+            if args.is_multifidelity_run:
+                # Add "eta=4," and "early_stopping_rate=1,"
+                raise NotImplementedError
             neps.run(
                 run_pipeline=main_master,
                 pipeline_space=pipeline_space,
                 working_directory=args.output_dir,
                 max_evaluations_total=10000,
                 max_evaluations_per_run=1,
-                eta=4,
-                early_stopping_rate=1,
+                overwrite_working_directory=False,
+                # eta=4,
+                # early_stopping_rate=1,
             )
         else:
             main_worker()
