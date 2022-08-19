@@ -10,4 +10,7 @@ pip list
 source activate dino
 
 
-python -m torch.distributed.launch --nproc_per_node=1 eval_linear.py --output_dir /work/dlclarge2/wagnerd-metassl-experiments/dino/CIFAR-100/$EXPERIMENT_NAME --pretrained_weights /work/dlclarge2/wagnerd-metassl-experiments/dino/CIFAR-100/{{EXPERIMENT_NAME}}/checkpoint.pth --batch_size_per_gpu 64 --gpu 1 --world_size 1 --dataset CIFAR-100 --epochs 100
+port=`python cluster/find_free_port.py`
+echo "found free port $port"
+
+python -m torch.distributed.launch --master_port=$port --nproc_per_node=1 eval_linear.py --output_dir /work/dlclarge2/wagnerd-metassl-experiments/dino/CIFAR-100/$EXPERIMENT_NAME --pretrained_weights /work/dlclarge2/wagnerd-metassl-experiments/dino/CIFAR-100/{{EXPERIMENT_NAME}}/checkpoint.pth --batch_size_per_gpu 256 --gpu 1 --world_size 1 --dataset CIFAR-100 --epochs 100
