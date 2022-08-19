@@ -16,12 +16,20 @@
   mkdir -p /work/dlclarge2/wagnerd-metassl-experiments/dino/CIFAR-10/{{EXPERIMENT_NAME}}/cluster_oe/
   sbatch --exclude=dlcgpu16,dlcgpu17 --output=/work/dlclarge2/wagnerd-metassl-experiments/dino/CIFAR-10/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --error=/work/dlclarge2/wagnerd-metassl-experiments/dino/CIFAR-10/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --export=EXPERIMENT_NAME={{EXPERIMENT_NAME}},SEED={{SEED}} cluster/submit_cifar10_dino_pretraining.sh
 
-# Run DINO NEPS for CIFAR-10 locally (Diane)
-@cifar10_neps_local EXPERIMENT_NAME EPOCHS:
+# Run DINO NEPS (data augmentation) for CIFAR-10 locally (Diane)
+@cifar10_neps_data_augmentation_local EXPERIMENT_NAME EPOCHS:
   #!/usr/bin/env bash
   mkdir -p /tmp/dino_communication
   filename=/tmp/dino_communication/$(openssl rand -hex 12)
   python -u -m torch.distributed.launch --use_env --nproc_per_node=1 --nnodes=1 main_dino.py --config_file_path $filename --arch vit_small --output_dir experiments/{{EXPERIMENT_NAME}} --batch_size_per_gpu 64 --saveckp_freq 10 --gpu 1 --world_size 1 --dataset CIFAR-10 --epochs {{EPOCHS}} --is_neps_run
+  rm filename
+
+# Run DINO NEPS (training) for CIFAR-10 locally (Diane)
+@cifar10_neps_training_local EXPERIMENT_NAME EPOCHS:
+  #!/usr/bin/env bash
+  mkdir -p /tmp/dino_communication
+  filename=/tmp/dino_communication/$(openssl rand -hex 12)
+  python -u -m torch.distributed.launch --use_env --nproc_per_node=1 --nnodes=1 main_dino.py --config_file_path $filename --arch vit_small --output_dir experiments/{{EXPERIMENT_NAME}} --batch_size_per_gpu 64 --saveckp_freq 10 --gpu 1 --world_size 1 --dataset CIFAR-10 --epochs {{EPOCHS}} --is_neps_run --config_space training
   rm filename
 
 # Run linear DINO evaluation for CIFAR-10 locally (Diane)
