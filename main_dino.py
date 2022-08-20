@@ -427,6 +427,7 @@ def train_dino(rank, working_directory, previous_working_directory, args, hyperp
             finetuning_parser.add_argument('--avgpool_patchtokens', default=False, type=utils.bool_flag,
             help="""Whether ot not to concatenate the global average pooled features to the [CLS] token.
             We typically set this to False for ViT-Small and to True with ViT-Base.""")
+            finetuning_parser.add_argument('--seed', default=0, type=int, help='Random seed.')
             finetuning_parser.add_argument('--arch', default='vit_small', type=str, help='Architecture')
             finetuning_parser.add_argument('--patch_size', default=16, type=int, help='Patch resolution of the model.')
             finetuning_parser.add_argument('--pretrained_weights', default='', type=str, help="Path to pretrained weights to evaluate.")
