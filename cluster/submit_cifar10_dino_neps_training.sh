@@ -2,7 +2,7 @@
 #SBATCH -p alldlc_gpu-rtx2080
 ##SBATCH -q dlc-wagnerd
 #SBATCH --gres=gpu:1
-#SBATCH -J C10_NEPS_TRAIN_DINO
+#SBATCH -J TR_C10_NEPS_DINO
 ##SBATCH -t 23:59:59
 #SBATCH --array 0-49%10
 
