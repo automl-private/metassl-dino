@@ -228,7 +228,7 @@ def train_dino(rank, working_directory, previous_working_directory, args, hyperp
     dataset = utils.get_dataset(args=args, transform=transform, mode="train", pretrain=True)
     if args.is_neps_run:
         dataset_percentage_usage = 100
-        valid_size = 0.2
+        valid_size = 0.1
         num_train = int(len(dataset) / 100 * dataset_percentage_usage)
         indices = list(range(num_train))
         split = int(np.floor(valid_size * num_train))

@@ -102,7 +102,7 @@ def eval_linear(args):
         dataset_val = utils.get_dataset(args=args, transform=val_transform, mode="train")
         
         dataset_percentage_usage = 100
-        valid_size = 0.2  # TODO: check out! For CIFAR-10 I would use 0.1. For balanced ImageNet 0.1 might also be fine?
+        valid_size = 0.1  # TODO: check out! For CIFAR-10 I would use 0.1. For balanced ImageNet 0.1 might also be fine?
         num_train = int(len(dataset_train) / 100 * dataset_percentage_usage)
         indices = list(range(num_train))
         split = int(np.floor(valid_size * num_train))
