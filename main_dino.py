@@ -470,7 +470,7 @@ def train_dino(rank, working_directory, previous_working_directory, args, hyperp
             finetuning_args.assert_train_idx = train_idx[:10]
 
             finetuning_args.dataset = args.dataset
-            finetuning_args.epochs = 10
+            finetuning_args.epochs = 100
             if args.is_multifidelity_run:
                 finetuning_args.epoch_fidelity = hyperparameters["epoch_fidelity"]
             
