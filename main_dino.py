@@ -27,6 +27,7 @@ import numpy as np
 from PIL import Image
 import torch
 import torch.nn as nn
+from torch.utils.data import Subset
 import torch.distributed as dist
 import torch.backends.cudnn as cudnn
 import torch.nn.functional as F
@@ -225,22 +226,29 @@ def train_dino(rank, working_directory, previous_working_directory, args, hyperp
         hyperparameters,
         args.config_space,
     )
+    
     dataset = utils.get_dataset(args=args, transform=transform, mode="train", pretrain=True)
+    valid_size = 0.1
+    dataset_percentage_usage = 100
+    num_train = int(len(dataset) / 100 * dataset_percentage_usage)
+    indices = list(range(num_train))
+    split = int(np.floor(valid_size * num_train))
+    
     if args.is_neps_run:
-        dataset_percentage_usage = 100
-        valid_size = 0.1
-        num_train = int(len(dataset) / 100 * dataset_percentage_usage)
-        indices = list(range(num_train))
-        split = int(np.floor(valid_size * num_train))
-        
-        np.random.shuffle(indices)
-
-        if np.isclose(valid_size, 0.0):
-            train_idx, valid_idx = indices, indices
+        if args.dataset == "ImageNet":
+            if np.isclose(valid_size, 0.0):
+                train_idx, valid_idx = indices, indices
+            else:
+                train_idx, valid_idx = utils.stratified_split(dataset.targets if hasattr(dataset, 'targets') else list(dataset.labels), valid_size)
         else:
-            train_idx, valid_idx = indices[split:], indices[:split]
+            np.random.shuffle(indices)
+            if np.isclose(valid_size, 0.0):
+                train_idx, valid_idx = indices, indices
+            else:
+                train_idx, valid_idx = indices[split:], indices[:split]
         
         train_sampler = torch.utils.data.distributed.DistributedSampler(train_idx)
+    
     else:
         sampler = torch.utils.data.DistributedSampler(dataset, shuffle=True)
     
@@ -466,8 +474,8 @@ def train_dino(rank, working_directory, previous_working_directory, args, hyperp
             finetuning_args.saveckp_freq = args.saveckp_freq
             finetuning_args.pretrained_weights = str(finetuning_args.output_dir) + "/checkpoint.pth"
             finetuning_args.seed = args.seed 
-            finetuning_args.assert_valid_idx = valid_idx[:10]
-            finetuning_args.assert_train_idx = train_idx[:10]
+            finetuning_args.assert_valid_idx = valid_idx
+            finetuning_args.assert_train_idx = train_idx
 
             finetuning_args.dataset = args.dataset
             finetuning_args.epochs = 100

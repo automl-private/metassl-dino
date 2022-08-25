@@ -24,6 +24,7 @@ import torch.backends.cudnn as cudnn
 from torchvision import datasets
 from torchvision import transforms as pth_transforms
 from torchvision import models as torchvision_models
+from torch.utils.data import Subset
 
 import utils
 import vision_transformer as vits
@@ -99,25 +100,37 @@ def eval_linear(args):
     dataset_train = utils.get_dataset(args=args, transform=train_transform, mode="train")
 
     if args.is_neps_run:
-        dataset_val = utils.get_dataset(args=args, transform=val_transform, mode="train")
-        
-        dataset_percentage_usage = 100
-        valid_size = 0.1  # TODO: check out! For CIFAR-10 I would use 0.1. For balanced ImageNet 0.1 might also be fine?
-        num_train = int(len(dataset_train) / 100 * dataset_percentage_usage)
-        indices = list(range(num_train))
-        split = int(np.floor(valid_size * num_train))
-        
-        np.random.shuffle(indices)
+        if args.dataset == "ImageNet":
+            # balanced valid dataset
+            # assumption: training dataset in `total_trainset` and you take care of doing the right thing with the transforms (as they are shared with `total_trainset`).
+            # It is easiest to load the training set twice with the right transforms and use one for training and one for validation.
+            dataset_train_trans = dataset_train
+            dataset_val_trans = utils.get_dataset(args=args, transform=val_transform, mode="train")
+            dataset_val = Subset(dataset_val_trans, args.valid_idx)
+            dataset_train = Subset(dataset_train_trans, args.train_idx)
 
-        if np.isclose(valid_size, 0.0):
-            train_idx, valid_idx = indices, indices
+            train_sampler = torch.utils.data.distributed.DistributedSampler(dataset_train)
+            valid_sampler = torch.utils.data.distributed.DistributedSampler(dataset_val)
         else:
-            train_idx, valid_idx = indices[split:], indices[:split]
-        
-        assert valid_idx[:10] == args.assert_valid_idx
-
-        train_sampler = torch.utils.data.distributed.DistributedSampler(train_idx)
-        valid_sampler = torch.utils.data.distributed.DistributedSampler(valid_idx)
+            dataset_val = utils.get_dataset(args=args, transform=val_transform, mode="train")
+            
+            dataset_percentage_usage = 100
+            valid_size = 0.1  # TODO: check out! For CIFAR-10 I would use 0.1. For balanced ImageNet 0.1 might also be fine?
+            num_train = int(len(dataset_train) / 100 * dataset_percentage_usage)
+            indices = list(range(num_train))
+            split = int(np.floor(valid_size * num_train))
+            
+            np.random.shuffle(indices)
+    
+            if np.isclose(valid_size, 0.0):
+                train_idx, valid_idx = indices, indices
+            else:
+                train_idx, valid_idx = indices[split:], indices[:split]
+            
+            assert valid_idx[:10] == args.assert_valid_idx
+    
+            train_sampler = torch.utils.data.distributed.DistributedSampler(train_idx)
+            valid_sampler = torch.utils.data.distributed.DistributedSampler(valid_idx)
     
     else:
         dataset_val = utils.get_dataset(args=args, transform=val_transform, mode="val")

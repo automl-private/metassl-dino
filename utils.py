@@ -22,6 +22,7 @@ import sys
 import time
 import math
 import random
+from collection import Counter
 import datetime
 import subprocess
 from collections import defaultdict, deque
@@ -881,3 +882,32 @@ def multi_scale(samples, model):
     v /= 3
     v /= v.norm()
     return v
+
+
+def shufflelist_with_seed(lis, seed='2020'):
+    s = random.getstate()
+    random.seed(seed)
+    random.shuffle(lis)
+    random.setstate(s)
+
+
+def stratified_split(labels, val_share):
+    if isinstance(labels, torch.Tensor):
+        labels = labels.tolist()
+    assert isinstance(labels, list)
+    counter = Counter(labels)
+    indices_per_label = {label: [i for i,l in enumerate(labels) if l == label] for label in counter}
+    per_label_split = {}
+    for label, count in counter.items():
+        indices = indices_per_label[label]
+        assert count == len(indices)
+        shufflelist_with_seed(indices, f'2020_{label}_{count}')
+        train_val_border = round(count*(1.-val_share))
+        per_label_split[label] = (indices[:train_val_border], indices[train_val_border:])
+    final_split = ([],[])
+    for label, split in per_label_split.items():
+        for f_s, s in zip(final_split, split):
+            f_s.extend(s)
+    shufflelist_with_seed(final_split[0], '2020_yoyo')
+    shufflelist_with_seed(final_split[1], '2020_yo')
+    return final_split
