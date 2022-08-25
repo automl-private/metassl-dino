@@ -240,6 +240,7 @@ def train_dino(rank, working_directory, previous_working_directory, args, hyperp
                 train_idx, valid_idx = indices, indices
             else:
                 train_idx, valid_idx = utils.stratified_split(dataset.targets if hasattr(dataset, 'targets') else list(dataset.labels), valid_size)
+                print("using balanced validation set")
         else:
             np.random.shuffle(indices)
             if np.isclose(valid_size, 0.0):

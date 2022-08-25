@@ -108,6 +108,7 @@ def eval_linear(args):
             dataset_val_trans = utils.get_dataset(args=args, transform=val_transform, mode="train")
             dataset_val = Subset(dataset_val_trans, args.valid_idx)
             dataset_train = Subset(dataset_train_trans, args.train_idx)
+            print("using balanced validation set")
 
             train_sampler = torch.utils.data.distributed.DistributedSampler(dataset_train)
             valid_sampler = torch.utils.data.distributed.DistributedSampler(dataset_val)
