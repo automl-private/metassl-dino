@@ -158,7 +158,8 @@ def dino_neps_main(working_directory, previous_working_directory, args, **hyperp
     if args.is_neps_run:
         try:
             train_dino(torch.distributed.get_rank(), working_directory, previous_working_directory, args, hyperparameters)
-        except:
+        except Exception as e:
+            print(e)
             return 0
 
         if torch.distributed.get_rank() == 0: # assumption: rank, running neps is 0
