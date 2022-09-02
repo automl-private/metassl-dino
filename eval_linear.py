@@ -159,7 +159,10 @@ def eval_linear(args):
         return
     
     if args.is_neps_run:
-        print(f"Data loaded with {len(train_idx)} train and {len(valid_idx)} val imgs.")
+        if args.dataset == "ImageNet":
+            print(f"Data loaded with {len(args.assert_train_idx)} train and {len(args.assert_valid_idx)} val imgs.")
+        else:
+            print(f"Data loaded with {len(train_idx)} train and {len(valid_idx)} val imgs.")
     else:
         print(f"Data loaded with {len(dataset_train)} train and {len(dataset_val)} val imgs.")
 
