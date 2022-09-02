@@ -106,8 +106,8 @@ def eval_linear(args):
             # It is easiest to load the training set twice with the right transforms and use one for training and one for validation.
             dataset_train_trans = dataset_train
             dataset_val_trans = utils.get_dataset(args=args, transform=val_transform, mode="train")
-            dataset_val = Subset(dataset_val_trans, args.valid_idx)
-            dataset_train = Subset(dataset_train_trans, args.train_idx)
+            dataset_val = Subset(dataset_val_trans, args.assert_valid_idx)
+            dataset_train = Subset(dataset_train_trans, args.assert_train_idx)
             print("using balanced validation set")
 
             train_sampler = torch.utils.data.distributed.DistributedSampler(dataset_train)
