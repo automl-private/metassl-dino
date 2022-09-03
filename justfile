@@ -30,6 +30,12 @@
   mkdir -p /work/dlclarge2/wagnerd-metassl-experiments/dino/CIFAR-10/{{EXPERIMENT_NAME}}/cluster_oe/
   sbatch --exclude=dlcgpu16,dlcgpu17 --output=/work/dlclarge2/wagnerd-metassl-experiments/dino/CIFAR-10/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --error=/work/dlclarge2/wagnerd-metassl-experiments/dino/CIFAR-10/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --export=EXPERIMENT_NAME={{EXPERIMENT_NAME}},SEED={{SEED}} cluster/submit_cifar10_dino_neps_data_augmentation.sh
 
+# Run DINO NEPS (groupaugment) for CIFAR-10 on the cluster (Diane)
+@cifar10_neps_groupaugment EXPERIMENT_NAME SEED:
+  #!/usr/bin/env bash
+  mkdir -p /work/dlclarge2/wagnerd-metassl-experiments/dino/CIFAR-10/{{EXPERIMENT_NAME}}/cluster_oe/
+  sbatch --exclude=dlcgpu46 --output=/work/dlclarge2/wagnerd-metassl-experiments/dino/CIFAR-10/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --error=/work/dlclarge2/wagnerd-metassl-experiments/dino/CIFAR-10/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --export=EXPERIMENT_NAME={{EXPERIMENT_NAME}},SEED={{SEED}} cluster/submit_cifar10_dino_neps_groupaugment.sh
+
 # Run DINO NEPS (training) for CIFAR-10 locally (Diane)
 @cifar10_neps_training_local EXPERIMENT_NAME EPOCHS:
   #!/usr/bin/env bash
@@ -53,7 +59,7 @@
 @cifar10_eval EXPERIMENT_NAME SEED:
   #!/usr/bin/env bash
   mkdir -p /work/dlclarge2/wagnerd-metassl-experiments/dino/CIFAR-10/{{EXPERIMENT_NAME}}/cluster_oe/
-  sbatch --exclude=dlcgpu05,dlcgpu29,dlcgpu09 --output=/work/dlclarge2/wagnerd-metassl-experiments/dino/CIFAR-10/22-08-08_baselines_bs256/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --error=/work/dlclarge2/wagnerd-metassl-experiments/dino/CIFAR-10/22-08-08_baselines_bs256/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --export=EXPERIMENT_NAME={{EXPERIMENT_NAME}},SEED={{SEED}} cluster/submit_cifar10_dino_linear_evaluation.sh
+  sbatch --exclude=dlcgpu05,dlcgpu29,dlcgpu09 --output=/work/dlclarge2/wagnerd-metassl-experiments/dino/CIFAR-10/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --error=/work/dlclarge2/wagnerd-metassl-experiments/dino/CIFAR-10/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --export=EXPERIMENT_NAME={{EXPERIMENT_NAME}},SEED={{SEED}} cluster/submit_cifar10_dino_linear_evaluation.sh
 
 # ---------------------------------------------------------------------------------------
 # CIFAR-100 (DIANE)
@@ -82,6 +88,12 @@
   #!/usr/bin/env bash
   mkdir -p /work/dlclarge2/wagnerd-metassl-experiments/dino/CIFAR-100/{{EXPERIMENT_NAME}}/cluster_oe/
   sbatch --exclude=dlcgpu16,dlcgpu17 --output=/work/dlclarge2/wagnerd-metassl-experiments/dino/CIFAR-100/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --error=/work/dlclarge2/wagnerd-metassl-experiments/dino/CIFAR-100/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --export=EXPERIMENT_NAME={{EXPERIMENT_NAME}},SEED={{SEED}} cluster/submit_cifar100_dino_neps_data_augmentation.sh
+
+# Run DINO NEPS (groupaugment) for CIFAR-100 on the cluster (Diane)
+@cifar100_neps_groupaugment EXPERIMENT_NAME SEED:
+  #!/usr/bin/env bash
+  mkdir -p /work/dlclarge2/wagnerd-metassl-experiments/dino/CIFAR-100/{{EXPERIMENT_NAME}}/cluster_oe/
+  sbatch --exclude=dlcgpu46 --output=/work/dlclarge2/wagnerd-metassl-experiments/dino/CIFAR-100/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --error=/work/dlclarge2/wagnerd-metassl-experiments/dino/CIFAR-100/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --export=EXPERIMENT_NAME={{EXPERIMENT_NAME}},SEED={{SEED}} cluster/submit_cifar100_dino_neps_groupaugment.sh
 
 # Run DINO NEPS (training) for CIFAR-100 locally (Diane)
 @cifar100_neps_training_local EXPERIMENT_NAME EPOCHS:
