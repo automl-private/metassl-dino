@@ -103,6 +103,79 @@ def get_pipeline_space(args):
             #     choices=[True, False], default=True, default_confidence="medium"
             # ),
         )
+    elif args.config_space == "groupaugment":
+        pipeline_space = dict(
+            # Probabilities for crop 1
+            p_color_transformations_crop_1=neps.FloatParameter(
+                lower=0, upper=1, log=False, default=0.5, default_confidence="medium"
+            ),
+            p_geometric_transformations_crop_1=neps.FloatParameter(
+                lower=0, upper=1, log=False, default=0.5, default_confidence="medium"
+            ),
+            p_non_rigid_transformations_crop_1=neps.FloatParameter(
+                lower=0, upper=1, log=False, default=0, default_confidence="medium"
+            ),
+            p_quality_transformations_crop_1=neps.FloatParameter(
+                lower=0, upper=1, log=False, default=0, default_confidence="medium"
+            ),
+            p_exotic_transformations_crop_1=neps.FloatParameter(
+                lower=0, upper=1, log=False, default=0, default_confidence="medium"
+            ),
+            #
+            # Probabilities for crop 2
+            p_color_transformations_crop_2=neps.FloatParameter(
+                lower=0, upper=1, log=False, default=0.5, default_confidence="medium"
+            ),
+            p_geometric_transformations_crop_2=neps.FloatParameter(
+                lower=0, upper=1, log=False, default=0.5, default_confidence="medium"
+            ),
+            p_non_rigid_transformations_crop_2=neps.FloatParameter(
+                lower=0, upper=1, log=False, default=0, default_confidence="medium"
+            ),
+            p_quality_transformations_crop_2=neps.FloatParameter(
+                lower=0, upper=1, log=False, default=0, default_confidence="medium"
+            ),
+            p_exotic_transformations_crop_2=neps.FloatParameter(
+                lower=0, upper=1, log=False, default=0, default_confidence="medium"
+            ),
+            #
+            # Probabilities for crop 3
+            p_color_transformations_crop_3=neps.FloatParameter(
+                lower=0, upper=1, log=False, default=0.5, default_confidence="medium"
+            ),
+            p_geometric_transformations_crop_3=neps.FloatParameter(
+                lower=0, upper=1, log=False, default=0.5, default_confidence="medium"
+            ),
+            p_non_rigid_transformations_crop_3=neps.FloatParameter(
+                lower=0, upper=1, log=False, default=0, default_confidence="medium"
+            ),
+            p_quality_transformations_crop_3=neps.FloatParameter(
+                lower=0, upper=1, log=False, default=0, default_confidence="medium"
+            ),
+            p_exotic_transformations_crop_3=neps.FloatParameter(
+                lower=0, upper=1, log=False, default=0, default_confidence="medium"
+            ),
+            #
+            # Number of transformations per group (same for each crop)
+            n_color_transformations=neps.IntegerParameter(
+                lower=1, upper=5, log=False, default=1, default_confidence="medium"
+            ),
+            n_geometric_transformations=neps.IntegerParameter(
+                lower=1, upper=2, log=False, default=1, default_confidence="medium"
+            ),
+            n_non_rigid_transformations=neps.IntegerParameter(
+                lower=1, upper=3, log=False, default=1, default_confidence="medium"
+            ),
+            n_quality_transformations=neps.IntegerParameter(
+                lower=1, upper=2, log=False, default=1, default_confidence="medium"
+            ),
+            n_exotic_transformations=neps.IntegerParameter(
+                lower=1, upper=2, log=False, default=1, default_confidence="medium"
+            ),
+            n_total=neps.IntegerParameter(
+                lower=1, upper=5, log=False, default=1, default_confidence="medium"
+            ),
+        )
     else:
         raise NotImplementedError
     if args.is_multifidelity_run:

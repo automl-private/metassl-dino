@@ -127,9 +127,10 @@ def get_args_parser():
     # NEPS
     parser.add_argument("--is_neps_run", action="store_true", help="Set this flag to run a NEPS experiment.")
     parser.add_argument("--config_space", default="data_augmentation",
-                        choices=["data_augmentation", "training"],
+                        choices=["data_augmentation", "training", "groupaugment"],
                         help="Select the configspace you want to optimize with NEPS")
     parser.add_argument("--is_multifidelity_run", action="store_true", help="Store true if you want to activate multifidelity for NEPS")
+    parser.add_argument("--use_fixed_DA_hypers", action="store_true", help="Store true if you want to start runs with a specific data augmentation configuration found by NEPS. Default hyperparameters will be overwritten for that run.")
 
     # Misc
     parser.add_argument('--data_path', default='/path/to/imagenet/train/', type=str,
@@ -216,15 +217,30 @@ def train_dino(rank, working_directory, previous_working_directory, args, hyperp
         print("\n".join("%s: %s" % (k, str(v)) for k, v in sorted(dict(vars(args)).items())))
 
     # ============ preparing data ... ============
-    transform = DataAugmentationDINO(
-        args.dataset,
-        args.global_crops_scale,
-        args.local_crops_scale,
-        args.local_crops_number,
-        args.is_neps_run,
-        hyperparameters,
-        args.config_space,
-    )
+    if args.config_space == "groupaugment":
+        from data_augmentation import GroupAugmentDataAugmentationDINO
+        print("\n\n\n\nHEEEEREEE\n\n\n\n\n\n")
+        transform = GroupAugmentDataAugmentationDINO(
+            args.dataset,
+            args.global_crops_scale,
+            args.local_crops_scale,
+            args.local_crops_number,
+            args.is_neps_run,
+            args.use_fixed_DA_hypers,
+            hyperparameters,
+            args.config_space,
+        )
+    else:
+        transform = DataAugmentationDINO(
+            args.dataset,
+            args.global_crops_scale,
+            args.local_crops_scale,
+            args.local_crops_number,
+            args.is_neps_run,
+            args.use_fixed_DA_hypers,
+            hyperparameters,
+            args.config_space,
+        )
     dataset = utils.get_dataset(args=args, transform=transform, mode="train", pretrain=True)
     if args.is_neps_run:
         dataset_percentage_usage = 100
@@ -602,7 +618,7 @@ class DINOLoss(nn.Module):
 
 
 class DataAugmentationDINO(object):
-    def __init__(self, dataset, global_crops_scale, local_crops_scale, local_crops_number, is_neps_run, hyperparameters=None, config_space=None):
+    def __init__(self, dataset, global_crops_scale, local_crops_scale, local_crops_number, is_neps_run, use_fixed_DA_hypers, hyperparameters=None, config_space=None):
         if is_neps_run and config_space == "data_augmentation":
             crops_scale_boundary = hyperparameters["crops_scale_boundary"]
             global_crops_scale = (crops_scale_boundary, global_crops_scale[1])
@@ -647,9 +663,33 @@ class DataAugmentationDINO(object):
             print(f"p_gaussianblur_crop_3: {p_gaussianblur_crop_3}")
             print(f"p_solarize_crop_3: {p_solarize_crop_3}")
         else:
-            p_horizontal_crop_1, p_colorjitter_crop_1, p_grayscale_crop_1, p_gaussianblur_crop_1, p_solarize_crop_1 = 0.5, 0.8, 0.2, 1.0, 0.0
-            p_horizontal_crop_2, p_colorjitter_crop_2, p_grayscale_crop_2, p_gaussianblur_crop_2, p_solarize_crop_2 = 0.5, 0.8, 0.2, 0.1, 0.2
-            p_horizontal_crop_3, p_colorjitter_crop_3, p_grayscale_crop_3, p_gaussianblur_crop_3, p_solarize_crop_3 = 0.5, 0.8, 0.2, 0.5, 0.0
+            if use_fixed_DA_hypers:
+                if dataset == "ImageNet":
+                    raise NotImplementedError
+                elif dataset == "CIFAR-10":
+                    crops_scale_boundary = 0.35
+                    global_crops_scale = (crops_scale_boundary, global_crops_scale[1])
+                    local_crops_scale = (local_crops_scale[0], crops_scale_boundary)
+                    local_crops_number = 5
+
+                    p_horizontal_crop_1, p_colorjitter_crop_1, p_grayscale_crop_1, p_gaussianblur_crop_1, p_solarize_crop_1 = 0.76, 0.89, 0.07, 0.90, 0.33
+                    p_horizontal_crop_2, p_colorjitter_crop_2, p_grayscale_crop_2, p_gaussianblur_crop_2, p_solarize_crop_2 = 0.01, 0.91, 0.59, 0.11, 0.17
+                    p_horizontal_crop_3, p_colorjitter_crop_3, p_grayscale_crop_3, p_gaussianblur_crop_3, p_solarize_crop_3 = 0.75, 0.63, 0.00, 0.17, 0.27
+                elif dataset == "CIFAR-100":
+                    crops_scale_boundary = 0.38
+                    global_crops_scale = (crops_scale_boundary, global_crops_scale[1])
+                    local_crops_scale = (local_crops_scale[0], crops_scale_boundary)
+                    local_crops_number = 8
+
+                    p_horizontal_crop_1, p_colorjitter_crop_1, p_grayscale_crop_1, p_gaussianblur_crop_1, p_solarize_crop_1 = 0.43, 0.78, 0.05, 0.90, 0.11
+                    p_horizontal_crop_2, p_colorjitter_crop_2, p_grayscale_crop_2, p_gaussianblur_crop_2, p_solarize_crop_2 = 0.35, 0.65, 0.31, 0.09, 0.17
+                    p_horizontal_crop_3, p_colorjitter_crop_3, p_grayscale_crop_3, p_gaussianblur_crop_3, p_solarize_crop_3 = 0.44, 0.62, 0.45, 0.19, 0.04
+                else:
+                    raise NotImplementedError
+            else:
+                p_horizontal_crop_1, p_colorjitter_crop_1, p_grayscale_crop_1, p_gaussianblur_crop_1, p_solarize_crop_1 = 0.5, 0.8, 0.2, 1.0, 0.0
+                p_horizontal_crop_2, p_colorjitter_crop_2, p_grayscale_crop_2, p_gaussianblur_crop_2, p_solarize_crop_2 = 0.5, 0.8, 0.2, 0.1, 0.2
+                p_horizontal_crop_3, p_colorjitter_crop_3, p_grayscale_crop_3, p_gaussianblur_crop_3, p_solarize_crop_3 = 0.5, 0.8, 0.2, 0.5, 0.0
 
         if dataset == "ImageNet":
             global_crop_size = 224
