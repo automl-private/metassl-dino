@@ -106,8 +106,9 @@ def eval_linear(args):
             # It is easiest to load the training set twice with the right transforms and use one for training and one for validation.
             dataset_train_trans = dataset_train
             dataset_val_trans = utils.get_dataset(args=args, transform=val_transform, mode="train")
-            dataset_val = Subset(dataset_val_trans, args.valid_idx)
-            dataset_train = Subset(dataset_train_trans, args.train_idx)
+            dataset_val = Subset(dataset_val_trans, args.assert_valid_idx)
+            dataset_train = Subset(dataset_train_trans, args.assert_train_idx)
+            print("using balanced validation set")
 
             train_sampler = torch.utils.data.distributed.DistributedSampler(dataset_train)
             valid_sampler = torch.utils.data.distributed.DistributedSampler(dataset_val)
@@ -158,7 +159,10 @@ def eval_linear(args):
         return
     
     if args.is_neps_run:
-        print(f"Data loaded with {len(train_idx)} train and {len(valid_idx)} val imgs.")
+        if args.dataset == "ImageNet":
+            print(f"Data loaded with {len(args.assert_train_idx)} train and {len(args.assert_valid_idx)} val imgs.")
+        else:
+            print(f"Data loaded with {len(train_idx)} train and {len(valid_idx)} val imgs.")
     else:
         print(f"Data loaded with {len(dataset_train)} train and {len(dataset_val)} val imgs.")
 

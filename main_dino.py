@@ -159,7 +159,8 @@ def dino_neps_main(working_directory, previous_working_directory, args, **hyperp
     if args.is_neps_run:
         try:
             train_dino(torch.distributed.get_rank(), working_directory, previous_working_directory, args, hyperparameters)
-        except:
+        except Exception as e:
+            print(e)
             return 0
 
         if torch.distributed.get_rank() == 0: # assumption: rank, running neps is 0
@@ -255,6 +256,7 @@ def train_dino(rank, working_directory, previous_working_directory, args, hyperp
                 train_idx, valid_idx = indices, indices
             else:
                 train_idx, valid_idx = utils.stratified_split(dataset.targets if hasattr(dataset, 'targets') else list(dataset.labels), valid_size)
+                print("using balanced validation set")
         else:
             np.random.shuffle(indices)
             if np.isclose(valid_size, 0.0):
@@ -476,6 +478,7 @@ def train_dino(rank, working_directory, previous_working_directory, args, hyperp
             finetuning_parser.add_argument("--world_size", default=8, type=int, help="actually not needed here -- just for avoiding unrecognized arguments error")
             finetuning_parser.add_argument("--gpu", default=8, type=int, help="actually not needed here -- just for avoiding unrecognized arguments error")
             finetuning_parser.add_argument('--config_file_path', help="actually not needed here -- just for avoiding unrecognized arguments error")
+            finetuning_parser.add_argument('--warmup_epochs', help="actually not needed here -- just for avoiding unrecognized arguments error")
             finetuning_parser.add_argument('--dataset', default='ImageNet', choices=['ImageNet', 'CIFAR-10', 'CIFAR-100', 'DermaMNIST'], help='Select the dataset on which you want to run the pre-training. Default is ImageNet')
             finetuning_parser.add_argument('--saveckp_freq', default=20, type=int, help='Save checkpoint every x epochs.')
             finetuning_args = finetuning_parser.parse_args()

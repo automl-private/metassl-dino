@@ -22,7 +22,6 @@ import sys
 import time
 import math
 import random
-from collection import Counter
 import datetime
 import subprocess
 from collections import defaultdict, deque
@@ -33,6 +32,7 @@ from torch import nn
 import torch.distributed as dist
 from PIL import ImageFilter, ImageOps
 from torchvision import datasets
+from collections import Counter
 
 
 class GaussianBlur(object):
