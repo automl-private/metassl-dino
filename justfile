@@ -53,7 +53,7 @@
 # Run linear DINO evaluation for CIFAR-10 locally (Diane)
 @cifar10_eval_local EXPERIMENT_NAME EPOCHS:
   #!/usr/bin/env bash
-  python -m torch.distributed.launch --nproc_per_node=1 eval_linear.py --pretrained_weights experiments/{{EXPERIMENT_NAME}}/checkpoint.pth --arch vit_small --output_dir experiments/{{EXPERIMENT_NAME}} --batch_size_per_gpu 64 --gpu 1 --world_size 1 --dataset CIFAR-10 --epochs {{EPOCHS}}
+  python -m torch.distributed.launch --nproc_per_node=1 eval_linear.py --pretrained_weights experiments/{{EXPERIMENT_NAME}}/checkpoint.pth --arch vit_small --output_dir experiments/{{EXPERIMENT_NAME}} --batch_size_per_gpu 64 --gpu 1 --world_size 1 --dataset CIFAR-10 --num_labels 10 --epochs {{EPOCHS}}
 
 # Run linear DINO evaluation for CIFAR-10 on the cluster (Diane)
 @cifar10_eval EXPERIMENT_NAME SEED:
@@ -112,7 +112,7 @@
 # Run linear DINO evaluation for CIFAR-100 locally (Diane)
 @cifar100_eval_local EXPERIMENT_NAME EPOCHS:
   #!/usr/bin/env bash
-  python -m torch.distributed.launch --nproc_per_node=1 eval_linear.py --pretrained_weights experiments/{{EXPERIMENT_NAME}}/checkpoint.pth --arch vit_small --output_dir experiments/{{EXPERIMENT_NAME}} --batch_size_per_gpu 64 --gpu 1 --world_size 1 --dataset CIFAR-100 --epochs {{EPOCHS}}
+  python -m torch.distributed.launch --nproc_per_node=1 eval_linear.py --pretrained_weights experiments/{{EXPERIMENT_NAME}}/checkpoint.pth --arch vit_small --output_dir experiments/{{EXPERIMENT_NAME}} --batch_size_per_gpu 64 --gpu 1 --world_size 1 --dataset CIFAR-100 --num_labels 100 --epochs {{EPOCHS}}
 
 # Run linear DINO evaluation for CIFAR-100 on the cluster (Diane)
 @cifar100_eval EXPERIMENT_NAME SEED:
@@ -147,6 +147,128 @@
   #!/usr/bin/env bash
   mkdir -p /work/dlclarge2/wagnerd-metassl-experiments/dino/ImageNet/{{EXPERIMENT_NAME}}/cluster_oe/
   sbatch --output=/work/dlclarge2/wagnerd-metassl-experiments/dino/ImageNet/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --error=/work/dlclarge2/wagnerd-metassl-experiments/dino/ImageNet/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --export=EXPERIMENT_NAME={{EXPERIMENT_NAME}},SEED={{SEED}} cluster/submit_imagenet_dino_linear_evaluation_resnet50.sh
+
+
+# ---------------------------------------------------------------------------------------
+# DermaMNIST (DIANE)
+# ---------------------------------------------------------------------------------------
+
+# Run DINO pretraining for DermaMNIST locally (Diane)
+@dermamnist_pt_local EXPERIMENT_NAME EPOCHS:
+  #!/usr/bin/env bash
+  python -m torch.distributed.launch --nproc_per_node=1 main_dino.py --arch vit_small --output_dir experiments/{{EXPERIMENT_NAME}} --batch_size_per_gpu 64 --saveckp_freq 10 --gpu 1 --world_size 1 --dataset DermaMNIST --epochs {{EPOCHS}}
+
+# Run DINO pretraining for DermaMNIST on the cluster (Diane)
+@dermamnist_pt EXPERIMENT_NAME SEED:
+  #!/usr/bin/env bash
+  mkdir -p /work/dlclarge2/wagnerd-metassl-experiments/dino/DermaMNIST/{{EXPERIMENT_NAME}}/cluster_oe/
+  sbatch --exclude=dlcgpu17,dlcgpu29,dlcgpu09,dlcgpu14 --output=/work/dlclarge2/wagnerd-metassl-experiments/dino/DermaMNIST/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --error=/work/dlclarge2/wagnerd-metassl-experiments/dino/DermaMNIST/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --export=EXPERIMENT_NAME={{EXPERIMENT_NAME}},SEED={{SEED}} cluster/submit_dermamnist_dino_pretraining.sh
+
+# Run DINO NEPS (data augmentation) for DermaMNIST locally (Diane)
+@dermamnist_neps_data_augmentation_local EXPERIMENT_NAME EPOCHS:
+  #!/usr/bin/env bash
+  mkdir -p /tmp/dino_communication
+  filename=/tmp/dino_communication/$(openssl rand -hex 12)
+  python -u -m torch.distributed.launch --use_env --nproc_per_node=1 --nnodes=1 main_dino.py --config_file_path $filename --arch vit_small --output_dir experiments/{{EXPERIMENT_NAME}} --batch_size_per_gpu 64 --saveckp_freq 10 --gpu 1 --world_size 1 --dataset DermaMNIST --epochs {{EPOCHS}} --is_neps_run
+  rm filename
+
+# Run DINO NEPS (data augmentation) for DermaMNIST on the cluster (Diane)
+@dermamnist_neps_data_augmentation EXPERIMENT_NAME SEED:
+  #!/usr/bin/env bash
+  mkdir -p /work/dlclarge2/wagnerd-metassl-experiments/dino/DermaMNIST/{{EXPERIMENT_NAME}}/cluster_oe/
+  sbatch --exclude=dlcgpu16,dlcgpu17 --output=/work/dlclarge2/wagnerd-metassl-experiments/dino/DermaMNIST/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --error=/work/dlclarge2/wagnerd-metassl-experiments/dino/DermaMNIST/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --export=EXPERIMENT_NAME={{EXPERIMENT_NAME}},SEED={{SEED}} cluster/submit_dermamnist_dino_neps_data_augmentation.sh
+
+# Run DINO NEPS (groupaugment) for DermaMNIST on the cluster (Diane)
+@dermamnist_neps_groupaugment EXPERIMENT_NAME SEED:
+  #!/usr/bin/env bash
+  mkdir -p /work/dlclarge2/wagnerd-metassl-experiments/dino/DermaMNIST/{{EXPERIMENT_NAME}}/cluster_oe/
+  sbatch --exclude=dlcgpu46 --output=/work/dlclarge2/wagnerd-metassl-experiments/dino/DermaMNIST/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --error=/work/dlclarge2/wagnerd-metassl-experiments/dino/DermaMNIST/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --export=EXPERIMENT_NAME={{EXPERIMENT_NAME}},SEED={{SEED}} cluster/submit_dermamnist_dino_neps_groupaugment.sh
+
+# Run DINO NEPS (training) for DermaMNIST locally (Diane)
+@dermamnist_neps_training_local EXPERIMENT_NAME EPOCHS:
+  #!/usr/bin/env bash
+  mkdir -p /tmp/dino_communication
+  filename=/tmp/dino_communication/$(openssl rand -hex 12)
+  python -u -m torch.distributed.launch --use_env --nproc_per_node=1 --nnodes=1 main_dino.py --config_file_path $filename --arch vit_small --output_dir experiments/{{EXPERIMENT_NAME}} --batch_size_per_gpu 64 --saveckp_freq 10 --gpu 1 --world_size 1 --dataset DermaMNIST --epochs {{EPOCHS}} --is_neps_run --config_space training
+  rm filename
+
+# Run DINO NEPS (training) for DermaMNIST on the cluster (Diane)
+@dermamnist_neps_training EXPERIMENT_NAME SEED:
+  #!/usr/bin/env bash
+  mkdir -p /work/dlclarge2/wagnerd-metassl-experiments/dino/DermaMNIST/{{EXPERIMENT_NAME}}/cluster_oe/
+  sbatch --exclude=dlcgpu16,dlcgpu17 --output=/work/dlclarge2/wagnerd-metassl-experiments/dino/DermaMNIST/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --error=/work/dlclarge2/wagnerd-metassl-experiments/dino/DermaMNIST/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --export=EXPERIMENT_NAME={{EXPERIMENT_NAME}},SEED={{SEED}} cluster/submit_dermamnist_dino_neps_training.sh
+
+# Run linear DINO evaluation for DermaMNIST locally (Diane)
+@dermamnist_eval_local EXPERIMENT_NAME EPOCHS:
+  #!/usr/bin/env bash
+  python -m torch.distributed.launch --nproc_per_node=1 eval_linear.py --pretrained_weights experiments/{{EXPERIMENT_NAME}}/checkpoint.pth --arch vit_small --output_dir experiments/{{EXPERIMENT_NAME}} --batch_size_per_gpu 64 --gpu 1 --world_size 1 --dataset DermaMNIST --num_labels 7 --epochs {{EPOCHS}}
+
+# Run linear DINO evaluation for DermaMNIST on the cluster (Diane)
+@dermamnist_eval EXPERIMENT_NAME SEED:
+  #!/usr/bin/env bash
+  mkdir -p /work/dlclarge2/wagnerd-metassl-experiments/dino/DermaMNIST/{{EXPERIMENT_NAME}}/cluster_oe/
+  sbatch --output=/work/dlclarge2/wagnerd-metassl-experiments/dino/DermaMNIST/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --error=/work/dlclarge2/wagnerd-metassl-experiments/dino/DermaMNIST/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --export=EXPERIMENT_NAME={{EXPERIMENT_NAME}},SEED={{SEED}} cluster/submit_dermamnist_dino_linear_evaluation.sh
+
+
+# ---------------------------------------------------------------------------------------
+# Malaria (DIANE)
+# ---------------------------------------------------------------------------------------
+
+# Run DINO pretraining for Malaria locally (Diane)
+@malaria_pt_local EXPERIMENT_NAME EPOCHS:
+  #!/usr/bin/env bash
+  python -m torch.distributed.launch --nproc_per_node=1 main_dino.py --arch vit_small --output_dir experiments/{{EXPERIMENT_NAME}} --batch_size_per_gpu 64 --saveckp_freq 10 --gpu 1 --world_size 1 --dataset Malaria --epochs {{EPOCHS}}
+
+# Run DINO pretraining for Malaria on the cluster (Diane)
+@malaria_pt EXPERIMENT_NAME SEED:
+  #!/usr/bin/env bash
+  mkdir -p /work/dlclarge2/wagnerd-metassl-experiments/dino/Malaria/{{EXPERIMENT_NAME}}/cluster_oe/
+  sbatch --exclude=dlcgpu17,dlcgpu29,dlcgpu09,dlcgpu14 --output=/work/dlclarge2/wagnerd-metassl-experiments/dino/Malaria/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --error=/work/dlclarge2/wagnerd-metassl-experiments/dino/Malaria/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --export=EXPERIMENT_NAME={{EXPERIMENT_NAME}},SEED={{SEED}} cluster/submit_malaria_dino_pretraining.sh
+
+# Run DINO NEPS (data augmentation) for Malaria locally (Diane)
+@malaria_neps_data_augmentation_local EXPERIMENT_NAME EPOCHS:
+  #!/usr/bin/env bash
+  mkdir -p /tmp/dino_communication
+  filename=/tmp/dino_communication/$(openssl rand -hex 12)
+  python -u -m torch.distributed.launch --use_env --nproc_per_node=1 --nnodes=1 main_dino.py --config_file_path $filename --arch vit_small --output_dir experiments/{{EXPERIMENT_NAME}} --batch_size_per_gpu 64 --saveckp_freq 10 --gpu 1 --world_size 1 --dataset Malaria --epochs {{EPOCHS}} --is_neps_run
+  rm filename
+
+# Run DINO NEPS (data augmentation) for Malaria on the cluster (Diane)
+@malaria_neps_data_augmentation EXPERIMENT_NAME SEED:
+  #!/usr/bin/env bash
+  mkdir -p /work/dlclarge2/wagnerd-metassl-experiments/dino/Malaria/{{EXPERIMENT_NAME}}/cluster_oe/
+  sbatch --exclude=dlcgpu16,dlcgpu17 --output=/work/dlclarge2/wagnerd-metassl-experiments/dino/Malaria/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --error=/work/dlclarge2/wagnerd-metassl-experiments/dino/Malaria/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --export=EXPERIMENT_NAME={{EXPERIMENT_NAME}},SEED={{SEED}} cluster/submit_malaria_dino_neps_data_augmentation.sh
+
+# Run DINO NEPS (groupaugment) for Malaria on the cluster (Diane)
+@malaria_neps_groupaugment EXPERIMENT_NAME SEED:
+  #!/usr/bin/env bash
+  mkdir -p /work/dlclarge2/wagnerd-metassl-experiments/dino/Malaria/{{EXPERIMENT_NAME}}/cluster_oe/
+  sbatch --exclude=dlcgpu46 --output=/work/dlclarge2/wagnerd-metassl-experiments/dino/Malaria/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --error=/work/dlclarge2/wagnerd-metassl-experiments/dino/Malaria/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --export=EXPERIMENT_NAME={{EXPERIMENT_NAME}},SEED={{SEED}} cluster/submit_malaria_dino_neps_groupaugment.sh
+
+# Run DINO NEPS (training) for Malaria locally (Diane)
+@malaria_neps_training_local EXPERIMENT_NAME EPOCHS:
+  #!/usr/bin/env bash
+  mkdir -p /tmp/dino_communication
+  filename=/tmp/dino_communication/$(openssl rand -hex 12)
+  python -u -m torch.distributed.launch --use_env --nproc_per_node=1 --nnodes=1 main_dino.py --config_file_path $filename --arch vit_small --output_dir experiments/{{EXPERIMENT_NAME}} --batch_size_per_gpu 64 --saveckp_freq 10 --gpu 1 --world_size 1 --dataset Malaria --epochs {{EPOCHS}} --is_neps_run --config_space training
+  rm filename
+
+# Run DINO NEPS (training) for Malaria on the cluster (Diane)
+@malaria_neps_training EXPERIMENT_NAME SEED:
+  #!/usr/bin/env bash
+  mkdir -p /work/dlclarge2/wagnerd-metassl-experiments/dino/Malaria/{{EXPERIMENT_NAME}}/cluster_oe/
+  sbatch --exclude=dlcgpu16,dlcgpu17 --output=/work/dlclarge2/wagnerd-metassl-experiments/dino/Malaria/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --error=/work/dlclarge2/wagnerd-metassl-experiments/dino/Malaria/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --export=EXPERIMENT_NAME={{EXPERIMENT_NAME}},SEED={{SEED}} cluster/submit_malaria_dino_neps_training.sh
+
+# Run linear DINO evaluation for Malaria locally (Diane)
+@malaria_eval_local EXPERIMENT_NAME EPOCHS:
+  #!/usr/bin/env bash
+  python -m torch.distributed.launch --nproc_per_node=1 eval_linear.py --pretrained_weights experiments/{{EXPERIMENT_NAME}}/checkpoint.pth --arch vit_small --output_dir experiments/{{EXPERIMENT_NAME}} --batch_size_per_gpu 64 --gpu 1 --world_size 1 --dataset Malaria --num_labels 2 --epochs {{EPOCHS}}
+
+# Run linear DINO evaluation for Malaria on the cluster (Diane)
+@malaria_eval EXPERIMENT_NAME SEED:
+  #!/usr/bin/env bash
+  mkdir -p /work/dlclarge2/wagnerd-metassl-experiments/dino/Malaria/{{EXPERIMENT_NAME}}/cluster_oe/
+  sbatch --output=/work/dlclarge2/wagnerd-metassl-experiments/dino/Malaria/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --error=/work/dlclarge2/wagnerd-metassl-experiments/dino/Malaria/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --export=EXPERIMENT_NAME={{EXPERIMENT_NAME}},SEED={{SEED}} cluster/submit_malaria_dino_linear_evaluation.sh
 
 # ---------------------------------------------------------------------------------------
 # ImageNet

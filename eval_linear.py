@@ -37,7 +37,7 @@ def eval_linear(args):
     else:
         utils.init_distributed_mode(args, None)
     print("git:\n  {}\n".format(utils.get_sha()))
-    print("\n".join("%s: %s" % (k, str(v)) for k, v in sorted(dict(vars(args)).items())))
+   #  print("\n".join("%s: %s" % (k, str(v)) for k, v in sorted(dict(vars(args)).items())))
     cudnn.benchmark = True
 
     # ============ building network ... ============
@@ -80,6 +80,10 @@ def eval_linear(args):
         train_crop_size = 32
         val_crop_size = int(32 * 8 / 7)  # TODO: check out!
         normalize = pth_transforms.Normalize(mean=[0.5071, 0.4865, 0.4409], std=[0.2673, 0.2564, 0.2762])
+    elif args.dataset == "DermaMNIST":
+        train_crop_size = 32
+        val_crop_size = int(32 * 8 / 7)  # TODO: check out!
+        normalize = pth_transforms.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
     else:
         raise NotImplementedError(f"Dataset '{args.dataset}' not implemented yet!")
 
@@ -127,7 +131,7 @@ def eval_linear(args):
             else:
                 train_idx, valid_idx = indices[split:], indices[:split]
             
-            assert valid_idx[:10] == args.assert_valid_idx
+            assert valid_idx[:10] == args.assert_valid_idx[:10]
     
             train_sampler = torch.utils.data.distributed.DistributedSampler(train_idx)
             valid_sampler = torch.utils.data.distributed.DistributedSampler(valid_idx)
@@ -255,7 +259,10 @@ def train(args, model, linear_classifier, optimizer, loader, epoch, n, avgpool):
         output = linear_classifier(output)
 
         # compute cross entropy loss
-        loss = nn.CrossEntropyLoss()(output, target)
+        if args.dataset == "DermaMNIST":
+            loss = nn.CrossEntropyLoss()(output, target.squeeze().long())
+        else:
+            loss = nn.CrossEntropyLoss()(output, target)
 
         # compute the gradients
         optimizer.zero_grad()
@@ -295,7 +302,10 @@ def validate_network(args, val_loader, model, linear_classifier, n, avgpool):
             else:
                 output = model(inp)
         output = linear_classifier(output)
-        loss = nn.CrossEntropyLoss()(output, target)
+        if args.dataset == "DermaMNIST":
+            loss = nn.CrossEntropyLoss()(output, target.squeeze().long())
+        else:
+            loss = nn.CrossEntropyLoss()(output, target)
 
         if linear_classifier.module.num_labels >= 5:
             acc1, acc5 = utils.accuracy(output, target, topk=(1, 5))
@@ -365,7 +375,7 @@ if __name__ == '__main__':
     parser.add_argument("--gpu", default=8, type=int, help="actually not needed here -- just for avoiding unrecognized arguments error")
     parser.add_argument('--config_file_path', help="actually not needed here -- just for avoiding unrecognized arguments error")
     parser.add_argument('--seed', default=0, type=int, help='Random seed.')
-    parser.add_argument('--dataset', default='ImageNet', choices=['ImageNet', 'CIFAR-10', 'CIFAR-100', 'DermaMNIST'],
+    parser.add_argument('--dataset', default='ImageNet', choices=['ImageNet', 'CIFAR-10', 'CIFAR-100', 'DermaMNIST', 'Malaria'],
                         help='Select the dataset on which you want to run the pre-training. Default is ImageNet')
     
     args = parser.parse_args()

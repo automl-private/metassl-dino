@@ -146,7 +146,7 @@ def get_args_parser():
     parser.add_argument("--world_size", default=8, type=int, help="default is for NEPS mode with DDP, so 8.")
     parser.add_argument("--gpu", default=8, type=int, help="default is for NEPS mode with DDP, so 8 GPUs.")
     parser.add_argument('--config_file_path', help="Should be set to a path that does not exist.")
-    parser.add_argument('--dataset', default='ImageNet', choices=['ImageNet', 'CIFAR-10', 'CIFAR-100', 'DermaMNIST'],
+    parser.add_argument('--dataset', default='ImageNet', choices=['ImageNet', 'CIFAR-10', 'CIFAR-100', 'DermaMNIST', 'Malaria'],
                         help='Select the dataset on which you want to run the pre-training. Default is ImageNet')
     return parser
 
@@ -213,6 +213,10 @@ def train_dino(rank, working_directory, previous_working_directory, args, hyperp
             # args.norm_last_layer = hyperparameters["norm_last_layer"]
         elif args.config_space == "data_augmentation":
             args.local_crops_number = hyperparameters["local_crops_number"]
+
+        # Fixes bug araising when testing for few epochs
+        if args.warmup_epochs > args.epochs:
+            args.warmup_epochs = args.epochs
         
     else:
         print("\n".join("%s: %s" % (k, str(v)) for k, v in sorted(dict(vars(args)).items())))
@@ -241,45 +245,51 @@ def train_dino(rank, working_directory, previous_working_directory, args, hyperp
             hyperparameters,
             args.config_space,
         )
-    
-    dataset = utils.get_dataset(args=args, transform=transform, mode="train", pretrain=True)
-    valid_size = 0.1
-    dataset_percentage_usage = 100
-    num_train = int(len(dataset) / 100 * dataset_percentage_usage)
-    indices = list(range(num_train))
-    split = int(np.floor(valid_size * num_train))
-    
-    if args.is_neps_run:
-        if args.dataset == "ImageNet":
-            if np.isclose(valid_size, 0.0):
-                train_idx, valid_idx = indices, indices
-            else:
-                train_idx, valid_idx = utils.stratified_split(dataset.targets if hasattr(dataset, 'targets') else list(dataset.labels), valid_size)
+    if args.dataset == "Malaria":
+        if args.is_neps_run:
+            train_loader, valid_loader, test_loader = utils.get_malaria_dataloader(args, transform)
         else:
-            np.random.shuffle(indices)
-            if np.isclose(valid_size, 0.0):
-                train_idx, valid_idx = indices, indices
+            train_loader, test_loader = utils.get_malaria_dataloader(args, transform)
+        data_loader = train_loader
+    else:
+        dataset = utils.get_dataset(args=args, transform=transform, mode="train", pretrain=True)
+        valid_size = 0.1
+        dataset_percentage_usage = 100
+        num_train = int(len(dataset) / 100 * dataset_percentage_usage)
+        indices = list(range(num_train))
+        split = int(np.floor(valid_size * num_train))
+
+        if args.is_neps_run:
+            if args.dataset == "ImageNet":
+                if np.isclose(valid_size, 0.0):
+                    train_idx, valid_idx = indices, indices
+                else:
+                    train_idx, valid_idx = utils.stratified_split(dataset.targets if hasattr(dataset, 'targets') else list(dataset.labels), valid_size)
             else:
-                train_idx, valid_idx = indices[split:], indices[:split]
-        
-        train_sampler = torch.utils.data.distributed.DistributedSampler(train_idx)
+                np.random.shuffle(indices)
+                if np.isclose(valid_size, 0.0):
+                    train_idx, valid_idx = indices, indices
+                else:
+                    train_idx, valid_idx = indices[split:], indices[:split]
+
+            train_sampler = torch.utils.data.distributed.DistributedSampler(train_idx)
+
+        else:
+            sampler = torch.utils.data.DistributedSampler(dataset, shuffle=True)
+
+        data_loader = torch.utils.data.DataLoader(
+            dataset,
+            sampler=train_sampler if args.is_neps_run else sampler,
+            batch_size=args.batch_size_per_gpu,
+            num_workers=args.num_workers,
+            pin_memory=True,
+            drop_last=True,
+        )
     
-    else:
-        sampler = torch.utils.data.DistributedSampler(dataset, shuffle=True)
-    
-    data_loader = torch.utils.data.DataLoader(
-        dataset,
-        sampler=train_sampler if args.is_neps_run else sampler,
-        batch_size=args.batch_size_per_gpu,
-        num_workers=args.num_workers,
-        pin_memory=True,
-        drop_last=True,
-    )
-    
-    if args.is_neps_run:
-        print(f"Data loaded: there are {len(train_idx)} images.")
-    else:
-        print(f"Data loaded: there are {len(dataset)} images.")
+        if args.is_neps_run:
+            print(f"Data loaded: there are {len(train_idx)} images.")
+        else:
+            print(f"Data loaded: there are {len(dataset)} images.")
 
     # ============ building student and teacher networks ... ============
     # we changed the name DeiT-S for ViT-S to avoid confusions
@@ -476,7 +486,7 @@ def train_dino(rank, working_directory, previous_working_directory, args, hyperp
             finetuning_parser.add_argument("--world_size", default=8, type=int, help="actually not needed here -- just for avoiding unrecognized arguments error")
             finetuning_parser.add_argument("--gpu", default=8, type=int, help="actually not needed here -- just for avoiding unrecognized arguments error")
             finetuning_parser.add_argument('--config_file_path', help="actually not needed here -- just for avoiding unrecognized arguments error")
-            finetuning_parser.add_argument('--dataset', default='ImageNet', choices=['ImageNet', 'CIFAR-10', 'CIFAR-100', 'DermaMNIST'], help='Select the dataset on which you want to run the pre-training. Default is ImageNet')
+            finetuning_parser.add_argument('--dataset', default='ImageNet', choices=['ImageNet', 'CIFAR-10', 'CIFAR-100', 'DermaMNIST', 'Malaria'], help='Select the dataset on which you want to run the pre-training. Default is ImageNet')
             finetuning_parser.add_argument('--saveckp_freq', default=20, type=int, help='Save checkpoint every x epochs.')
             finetuning_args = finetuning_parser.parse_args()
             
@@ -493,10 +503,19 @@ def train_dino(rank, working_directory, previous_working_directory, args, hyperp
             finetuning_args.assert_train_idx = train_idx
 
             finetuning_args.dataset = args.dataset
+            if args.dataset == "CIFAR-10":
+                finetuning_parser.num_labels = 10
+            elif args.dataset == "CIFAR-100":
+                finetuning_parser.num_labels = 100
+            elif args.dataset == "DermaMNIST":
+                finetuning_parser.num_labels = 7
+            elif args.dataset == "Malaria":
+                finetuning_parser.num_labels = 2
             finetuning_args.epochs = 100
             if args.is_multifidelity_run:
                 finetuning_args.epoch_fidelity = hyperparameters["epoch_fidelity"]
-            
+
+            print("\nNum Classes: ", finetuning_parser.num_labels)
             eval_linear(finetuning_args)
             
     except ValueError:
@@ -710,6 +729,14 @@ class DataAugmentationDINO(object):
             global_crop_size = 32
             local_crop_size = 16
             normalize = transforms.Normalize(mean=(0.5071, 0.4865, 0.4409), std=(0.2673, 0.2564, 0.2762))
+        elif dataset == "DermaMNIST":
+            global_crop_size = 32
+            local_crop_size = 16
+            normalize = transforms.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
+        elif dataset == "Malaria":
+            global_crop_size = 64
+            local_crop_size = 32
+            normalize = transforms.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
         else:
             raise NotImplementedError(f"Dataset '{args.dataset}' not implemented yet!")
 

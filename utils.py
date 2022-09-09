@@ -32,6 +32,7 @@ import torch
 from torch import nn
 import torch.distributed as dist
 from PIL import ImageFilter, ImageOps
+from torch.utils.data import SubsetRandomSampler, DataLoader
 from torchvision import datasets
 
 
@@ -90,9 +91,64 @@ def get_dataset(args, transform, mode, pretrain=False):
             download=True,
             transform=transform,
         )
+    elif args.dataset == "DermaMNIST":
+        import medmnist
+        from medmnist import INFO, Evaluator
+
+        info = INFO["dermamnist"]
+        # task = info['task']
+        # n_channels = info['n_channels']
+        # n_classes = len(info['label'])
+        DataClass = getattr(medmnist, info['python_class'])
+
+        dataset = DataClass(split='train', transform=transform, download=True)
+
     else:
         raise NotImplementedError(f"Dataset '{args.dataset}' not implemented yet!")
     return dataset
+
+def get_malaria_dataloader(args, train_transform):
+    image_dir = 'datasets/Malaria/cell_images/cell_images/'
+    train_data = datasets.ImageFolder(image_dir, transform=train_transform)  # TODO: Check out for val_transform?
+
+    # percentage of training set to use as validation
+    valid_size = 0.1 if args.is_neps_run else 0.0
+    test_size = 0.1
+
+    # obtain training indices that will be used for validation
+    num_train = len(train_data)
+    indices = list(range(num_train))
+    np.random.shuffle(indices)
+    valid_split = int(np.floor((valid_size) * num_train))
+    test_split = int(np.floor((valid_size + test_size) * num_train))
+    valid_idx, test_idx, train_idx = indices[:valid_split], indices[valid_split:test_split], indices[test_split:]
+
+    # TODO: check if same idx!!!
+    print('#train: ', len(train_idx), '#valid: ', len(valid_idx), '#test: ', len(test_idx))
+
+    # define samplers for obtaining training and validation batches
+    train_sampler = torch.utils.data.distributed.DistributedSampler(train_idx)
+    valid_sampler = torch.utils.data.distributed.DistributedSampler(valid_idx)
+    test_sampler = torch.utils.data.distributed.DistributedSampler(test_idx)
+
+    # prepare data loaders (combine dataset and sampler)
+    train_loader = torch.utils.data.DataLoader(train_data, batch_size=args.batch_size_per_gpu,
+                                               sampler=train_sampler, num_workers=args.num_workers,
+                                               pin_memory=True, drop_last=True,
+                                               )
+    valid_loader = torch.utils.data.DataLoader(train_data, batch_size=args.batch_size_per_gpu,
+                                               sampler=valid_sampler, num_workers=args.num_workers,
+                                               pin_memory=True, drop_last=True,
+                                               )
+    test_loader = torch.utils.data.DataLoader(train_data, batch_size=args.batch_size_per_gpu,
+                                              sampler=test_sampler, num_workers=args.num_workers,
+                                              pin_memory=True, drop_last=True,
+                                              )
+
+    if args.is_neps_run:
+        return train_loader, valid_loader, test_loader
+    else:
+        return train_loader, test_loader
 
 
 def load_pretrained_weights(model, pretrained_weights, checkpoint_key, model_name, patch_size):
