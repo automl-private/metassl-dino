@@ -80,6 +80,18 @@ def eval_linear(args):
         train_crop_size = 32
         val_crop_size = int(32 * 8 / 7)  # TODO: check out!
         normalize = pth_transforms.Normalize(mean=[0.5071, 0.4865, 0.4409], std=[0.2673, 0.2564, 0.2762])
+    elif args.dataset == "flowers":
+        train_crop_size = 224
+        val_crop_size = 256
+        normalize = pth_transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+    elif args.dataset == "cars":
+        train_crop_size = 224
+        val_crop_size = 256
+        normalize = pth_transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+    elif args.dataset == "inaturalist":
+        train_crop_size = 224
+        val_crop_size = 256
+        normalize = pth_transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     else:
         raise NotImplementedError(f"Dataset '{args.dataset}' not implemented yet!")
 
