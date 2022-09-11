@@ -84,6 +84,10 @@ def eval_linear(args):
         train_crop_size = 32
         val_crop_size = int(32 * 8 / 7)  # TODO: check out!
         normalize = pth_transforms.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
+    elif args.dataset == "Malaria":
+        train_crop_size = 64
+        val_crop_size = int(64 * 8 / 7)  # TODO: check out!
+        normalize = pth_transforms.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
     else:
         raise NotImplementedError(f"Dataset '{args.dataset}' not implemented yet!")
 
@@ -101,70 +105,77 @@ def eval_linear(args):
         normalize,
     ])
 
-    dataset_train = utils.get_dataset(args=args, transform=train_transform, mode="train")
+    if args.dataset == "Malaria":
+        mode = "eval"
+        # Default: train (incl. valid) + test, NePS: train + valid
+        train_loader, val_loader = utils.get_malaria_dataloader(args, mode, train_transform, val_transform)
 
-    if args.is_neps_run:
-        if args.dataset == "ImageNet":
-            # balanced valid dataset
-            # assumption: training dataset in `total_trainset` and you take care of doing the right thing with the transforms (as they are shared with `total_trainset`).
-            # It is easiest to load the training set twice with the right transforms and use one for training and one for validation.
-            dataset_train_trans = dataset_train
-            dataset_val_trans = utils.get_dataset(args=args, transform=val_transform, mode="train")
-            dataset_val = Subset(dataset_val_trans, args.valid_idx)
-            dataset_train = Subset(dataset_train_trans, args.train_idx)
-
-            train_sampler = torch.utils.data.distributed.DistributedSampler(dataset_train)
-            valid_sampler = torch.utils.data.distributed.DistributedSampler(dataset_val)
-        else:
-            dataset_val = utils.get_dataset(args=args, transform=val_transform, mode="train")
-            
-            dataset_percentage_usage = 100
-            valid_size = 0.1  # TODO: check out! For CIFAR-10 I would use 0.1. For balanced ImageNet 0.1 might also be fine?
-            num_train = int(len(dataset_train) / 100 * dataset_percentage_usage)
-            indices = list(range(num_train))
-            split = int(np.floor(valid_size * num_train))
-            
-            np.random.shuffle(indices)
-    
-            if np.isclose(valid_size, 0.0):
-                train_idx, valid_idx = indices, indices
-            else:
-                train_idx, valid_idx = indices[split:], indices[:split]
-            
-            assert valid_idx[:10] == args.assert_valid_idx[:10]
-    
-            train_sampler = torch.utils.data.distributed.DistributedSampler(train_idx)
-            valid_sampler = torch.utils.data.distributed.DistributedSampler(valid_idx)
-    
     else:
-        dataset_val = utils.get_dataset(args=args, transform=val_transform, mode="val")
-        sampler = torch.utils.data.distributed.DistributedSampler(dataset_train)
-    
-    train_loader = torch.utils.data.DataLoader(
-        dataset_train,
-        sampler=train_sampler if args.is_neps_run else sampler,
-        batch_size=args.batch_size_per_gpu,
-        num_workers=args.num_workers,
-        pin_memory=True,
-    )
-    val_loader = torch.utils.data.DataLoader(
-        dataset_val,
-        sampler=valid_sampler if args.is_neps_run else None,
-        batch_size=args.batch_size_per_gpu,
-        num_workers=args.num_workers,
-        pin_memory=True,
-    )
+        dataset_train = utils.get_dataset(args=args, transform=train_transform, mode="train")
+
+        if args.is_neps_run:
+            if args.dataset == "ImageNet":
+                # balanced valid dataset
+                # assumption: training dataset in `total_trainset` and you take care of doing the right thing with the transforms (as they are shared with `total_trainset`).
+                # It is easiest to load the training set twice with the right transforms and use one for training and one for validation.
+                dataset_train_trans = dataset_train
+                dataset_val_trans = utils.get_dataset(args=args, transform=val_transform, mode="train")
+                dataset_val = Subset(dataset_val_trans, args.valid_idx)
+                dataset_train = Subset(dataset_train_trans, args.train_idx)
+
+                train_sampler = torch.utils.data.distributed.DistributedSampler(dataset_train)
+                valid_sampler = torch.utils.data.distributed.DistributedSampler(dataset_val)
+            else:
+                dataset_val = utils.get_dataset(args=args, transform=val_transform, mode="train")
+
+                dataset_percentage_usage = 100
+                valid_size = 0.1  # TODO: check out! For CIFAR-10 I would use 0.1. For balanced ImageNet 0.1 might also be fine?
+                num_train = int(len(dataset_train) / 100 * dataset_percentage_usage)
+                indices = list(range(num_train))
+                split = int(np.floor(valid_size * num_train))
+
+                np.random.shuffle(indices)
+
+                if np.isclose(valid_size, 0.0):
+                    train_idx, valid_idx = indices, indices
+                else:
+                    train_idx, valid_idx = indices[split:], indices[:split]
+
+                assert valid_idx[:10] == args.assert_valid_idx[:10]
+
+                train_sampler = torch.utils.data.distributed.DistributedSampler(train_idx)
+                valid_sampler = torch.utils.data.distributed.DistributedSampler(valid_idx)
+
+        else:
+            dataset_val = utils.get_dataset(args=args, transform=val_transform, mode="val")
+            sampler = torch.utils.data.distributed.DistributedSampler(dataset_train)
+
+        train_loader = torch.utils.data.DataLoader(
+            dataset_train,
+            sampler=train_sampler if args.is_neps_run else sampler,
+            batch_size=args.batch_size_per_gpu,
+            num_workers=args.num_workers,
+            pin_memory=True,
+        )
+        val_loader = torch.utils.data.DataLoader(
+            dataset_val,
+            sampler=valid_sampler if args.is_neps_run else None,
+            batch_size=args.batch_size_per_gpu,
+            num_workers=args.num_workers,
+            pin_memory=True,
+        )
 
     if args.evaluate:
         utils.load_pretrained_linear_weights(linear_classifier, args.arch, args.patch_size)
         test_stats = validate_network(args, val_loader, model, linear_classifier, args.n_last_blocks, args.avgpool_patchtokens)
         print(f"Accuracy of the network on the {len(dataset_val)} test images: {test_stats['acc1']:.1f}%")
         return
-    
-    if args.is_neps_run:
-        print(f"Data loaded with {len(train_idx)} train and {len(valid_idx)} val imgs.")
-    else:
-        print(f"Data loaded with {len(dataset_train)} train and {len(dataset_val)} val imgs.")
+
+    if args.dataset != "Malaria":
+        if args.is_neps_run:
+            print(f"Data loaded with {len(train_idx)} train and {len(valid_idx)} val imgs.")
+        else:
+            print(f"Data loaded with {len(dataset_train)} train and {len(dataset_val)} val imgs.")
 
     # set optimizer
     optimizer = torch.optim.SGD(
@@ -207,7 +218,11 @@ def eval_linear(args):
                      'epoch': epoch}
         if epoch % args.val_freq == 0 or epoch == args.epochs - 1:
             test_stats = validate_network(args, val_loader, model, linear_classifier, args.n_last_blocks, args.avgpool_patchtokens)
-            print(f"Accuracy at epoch {epoch} of the network on the {len(dataset_val)} test images: {test_stats['acc1']:.1f}%")
+            if args.dataset != "Malaria":
+                print(f"Accuracy at epoch {epoch} of the network on the {len(dataset_val)} test images: {test_stats['acc1']:.1f}%")
+            else:
+                print(
+                    f"Accuracy at epoch {epoch} of the network on the test images: {test_stats['acc1']:.1f}%")
             if args.do_early_stopping:
                 print("Do early stopping")
                 best_acc = max(best_acc, test_stats["acc1"])

@@ -246,11 +246,9 @@ def train_dino(rank, working_directory, previous_working_directory, args, hyperp
             args.config_space,
         )
     if args.dataset == "Malaria":
-        if args.is_neps_run:
-            train_loader, valid_loader, test_loader = utils.get_malaria_dataloader(args, transform)
-        else:
-            train_loader, test_loader = utils.get_malaria_dataloader(args, transform)
-        data_loader = train_loader
+        mode = "pre-training"
+        # check valid_idx later (in eval) in assert
+        data_loader, valid_idx = utils.get_malaria_dataloader(args, mode, transform)
     else:
         dataset = utils.get_dataset(args=args, transform=transform, mode="train", pretrain=True)
         valid_size = 0.1
@@ -500,7 +498,6 @@ def train_dino(rank, working_directory, previous_working_directory, args, hyperp
             finetuning_args.pretrained_weights = str(finetuning_args.output_dir) + "/checkpoint.pth"
             finetuning_args.seed = args.seed 
             finetuning_args.assert_valid_idx = valid_idx
-            finetuning_args.assert_train_idx = train_idx
 
             finetuning_args.dataset = args.dataset
             if args.dataset == "CIFAR-10":
