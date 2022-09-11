@@ -470,7 +470,6 @@ def train_dino(rank, working_directory, previous_working_directory, args, hyperp
             finetuning_parser.add_argument('--num_workers', default=10, type=int, help='Number of data loading workers per GPU.')
             finetuning_parser.add_argument('--val_freq', default=1, type=int, help="Epoch frequency for validation.")
             finetuning_parser.add_argument('--output_dir', default=".", help='Path to save logs and checkpoints')
-            finetuning_parser.add_argument('--num_labels', default=1000, type=int, help='Number of labels for linear classifier')
             finetuning_parser.add_argument('--evaluate', dest='evaluate', action='store_true', help='evaluate model on validation set')
             finetuning_parser.add_argument("--is_neps_run", action="store_true", help="Set this flag to run a NEPS experiment.")
             finetuning_parser.add_argument("--config_space", default="data_augmentation", choices=["data_augmentation", "training"], help="Select the configspace you want to optimize with NEPS")
