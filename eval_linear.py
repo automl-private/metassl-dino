@@ -63,25 +63,44 @@ def eval_linear(args):
     utils.load_pretrained_weights(model, args.pretrained_weights, args.checkpoint_key, args.arch, args.patch_size)
     print(f"Model {args.arch} built.")
 
-    linear_classifier = LinearClassifier(embed_dim, num_labels=args.num_labels)
-    linear_classifier = linear_classifier.cuda()
-    linear_classifier = nn.parallel.DistributedDataParallel(linear_classifier, device_ids=[args.gpu])
 
     # ============ preparing data ... ============
     if args.dataset == "ImageNet":
         train_crop_size = 224
         val_crop_size = 256
         normalize = pth_transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+        args.num_labels = 1000
     elif args.dataset == "CIFAR-10":
         train_crop_size = 32
         val_crop_size = int(32 * 8 / 7)  # TODO: check out!
         normalize = pth_transforms.Normalize(mean=[0.4914, 0.4822, 0.4465], std=[0.2023, 0.1994, 0.2010])
+        args.num_labels = 10
     elif args.dataset == "CIFAR-100":
         train_crop_size = 32
         val_crop_size = int(32 * 8 / 7)  # TODO: check out!
         normalize = pth_transforms.Normalize(mean=[0.5071, 0.4865, 0.4409], std=[0.2673, 0.2564, 0.2762])
+        args.num_labels = 100
+    elif args.dataset == "flowers":
+        train_crop_size = 224
+        val_crop_size = 256
+        normalize = pth_transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+        args.num_labels = 102
+    elif args.dataset == "cars":
+        train_crop_size = 224
+        val_crop_size = 256
+        normalize = pth_transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+        args.num_labels = 196
+    elif args.dataset == "inaturalist":
+        train_crop_size = 224
+        val_crop_size = 256
+        normalize = pth_transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+        args.num_labels = 5089
     else:
         raise NotImplementedError(f"Dataset '{args.dataset}' not implemented yet!")
+
+    linear_classifier = LinearClassifier(embed_dim, num_labels=args.num_labels)
+    linear_classifier = linear_classifier.cuda()
+    linear_classifier = nn.parallel.DistributedDataParallel(linear_classifier, device_ids=[args.gpu])
 
     train_transform = pth_transforms.Compose([
         pth_transforms.RandomResizedCrop(train_crop_size),
@@ -361,7 +380,6 @@ if __name__ == '__main__':
     parser.add_argument('--num_workers', default=10, type=int, help='Number of data loading workers per GPU.')
     parser.add_argument('--val_freq', default=1, type=int, help="Epoch frequency for validation.")
     parser.add_argument('--output_dir', default=".", help='Path to save logs and checkpoints')
-    parser.add_argument('--num_labels', default=1000, type=int, help='Number of labels for linear classifier')
     parser.add_argument('--evaluate', dest='evaluate', action='store_true', help='evaluate model on validation set')
     parser.add_argument("--is_neps_run", action="store_true", help="Set this flag to run a NEPS experiment.")
     parser.add_argument("--do_early_stopping", action="store_true", help="Set this flag to take the best test performance - Default by the DINO implementation.")
@@ -369,7 +387,7 @@ if __name__ == '__main__':
     parser.add_argument("--gpu", default=8, type=int, help="actually not needed here -- just for avoiding unrecognized arguments error")
     parser.add_argument('--config_file_path', help="actually not needed here -- just for avoiding unrecognized arguments error")
     parser.add_argument('--seed', default=0, type=int, help='Random seed.')
-    parser.add_argument('--dataset', default='ImageNet', choices=['ImageNet', 'CIFAR-10', 'CIFAR-100', 'DermaMNIST'],
+    parser.add_argument('--dataset', default='ImageNet', choices=['ImageNet', 'CIFAR-10', 'CIFAR-100', 'DermaMNIST', 'cars', 'flowers', 'inaturalist'],
                         help='Select the dataset on which you want to run the pre-training. Default is ImageNet')
     
     args = parser.parse_args()

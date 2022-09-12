@@ -90,6 +90,27 @@ def get_dataset(args, transform, mode, pretrain=False):
             download=True,
             transform=transform,
         )
+    elif args.dataset == "cars":
+        dataset = datasets.StanfordCars(
+            root="datasets/cars",
+            split="train" if mode == "train" else "test",
+            download=True,
+            transform=transform,
+            )
+    elif args.dataset == "flowers":
+        dataset = datasets.Flowers102(
+            root="datasets/flowers-102",
+            split="train" if mode == "train" else "test",
+            download=True,
+            transform=transform,
+            )
+    elif args.dataset == "inaturalist":
+        dataset = datasets.INaturalist(
+            root="(/data/datasets/inaturalist)",
+            version="2021_train" if mode == "train" else "2021_valid",
+            download=False,
+            transform=transform,
+            )
     else:
         raise NotImplementedError(f"Dataset '{args.dataset}' not implemented yet!")
     return dataset
