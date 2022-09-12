@@ -146,7 +146,7 @@ def get_args_parser():
     parser.add_argument("--world_size", default=8, type=int, help="default is for NEPS mode with DDP, so 8.")
     parser.add_argument("--gpu", default=8, type=int, help="default is for NEPS mode with DDP, so 8 GPUs.")
     parser.add_argument('--config_file_path', help="Should be set to a path that does not exist.")
-    parser.add_argument('--dataset', default='ImageNet', choices=['ImageNet', 'CIFAR-10', 'CIFAR-100', 'DermaMNIST', 'cars', 'flowers', 'inaturalist'],
+    parser.add_argument('--dataset', default='ImageNet', choices=['ImageNet', 'CIFAR-10', 'CIFAR-100', 'DermaMNIST', 'cars', 'flowers', 'inaturalist18', 'inaturalist19'],
                         help='Select the dataset on which you want to run the pre-training. Default is ImageNet')
     return parser
 
@@ -241,6 +241,7 @@ def train_dino(rank, working_directory, previous_working_directory, args, hyperp
             args.use_fixed_DA_hypers,
             hyperparameters,
             args.config_space,
+            args.config,
         )
     
     dataset = utils.get_dataset(args=args, transform=transform, mode="train", pretrain=True)

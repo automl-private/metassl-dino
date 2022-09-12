@@ -90,11 +90,11 @@ def eval_linear(args):
         val_crop_size = 256
         normalize = pth_transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
         args.num_labels = 196
-    elif args.dataset == "inaturalist":
+    elif args.dataset == "inaturalist18" or args.dataset == "inaturalist19":
         train_crop_size = 224
         val_crop_size = 256
         normalize = pth_transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-        args.num_labels = 5089
+        args.num_labels = 1010 if args.dataset == "inaturalist19" else 8142
     else:
         raise NotImplementedError(f"Dataset '{args.dataset}' not implemented yet!")
 
