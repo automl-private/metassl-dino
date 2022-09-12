@@ -63,9 +63,6 @@ def eval_linear(args):
     utils.load_pretrained_weights(model, args.pretrained_weights, args.checkpoint_key, args.arch, args.patch_size)
     print(f"Model {args.arch} built.")
 
-    linear_classifier = LinearClassifier(embed_dim, num_labels=args.num_labels)
-    linear_classifier = linear_classifier.cuda()
-    linear_classifier = nn.parallel.DistributedDataParallel(linear_classifier, device_ids=[args.gpu])
 
     # ============ preparing data ... ============
     if args.dataset == "ImageNet":
@@ -100,6 +97,10 @@ def eval_linear(args):
         args.num_labels = 5089
     else:
         raise NotImplementedError(f"Dataset '{args.dataset}' not implemented yet!")
+
+    linear_classifier = LinearClassifier(embed_dim, num_labels=args.num_labels)
+    linear_classifier = linear_classifier.cuda()
+    linear_classifier = nn.parallel.DistributedDataParallel(linear_classifier, device_ids=[args.gpu])
 
     train_transform = pth_transforms.Compose([
         pth_transforms.RandomResizedCrop(train_crop_size),
