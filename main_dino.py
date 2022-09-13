@@ -686,24 +686,24 @@ class DataAugmentationDINO(object):
                     # p_horizontal_crop_3, p_colorjitter_crop_3, p_grayscale_crop_3, p_gaussianblur_crop_3, p_solarize_crop_3 = 0.3563165, 0.7404752, 0.2123544, 0.4190477, 0.0499362  # first two changed
                     
                     # config id 17
-                    crops_scale_boundary = 0.3527670
-                    global_crops_scale = (crops_scale_boundary, global_crops_scale[1])
-                    local_crops_scale = (local_crops_scale[0], crops_scale_boundary)
-                    local_crops_number = 8
-
-                    p_horizontal_crop_1, p_colorjitter_crop_1, p_grayscale_crop_1, p_gaussianblur_crop_1, p_solarize_crop_1 = 0.4457032, 0.8400098, 0.3523988, 0.7991407, 0.0137116
-                    p_horizontal_crop_2, p_colorjitter_crop_2, p_grayscale_crop_2, p_gaussianblur_crop_2, p_solarize_crop_2 = 0.4318774, 0.9048964, 0.3216869, 0.0858478, 0.1224628
-                    p_horizontal_crop_3, p_colorjitter_crop_3, p_grayscale_crop_3, p_gaussianblur_crop_3, p_solarize_crop_3 = 0.2170025, 0.4877953, 0.2123544, 0.4190477, 0.0499362
-                    
-                    # config id 1
-                    # crops_scale_boundary = 0.3380264
+                    # crops_scale_boundary = 0.3527670
                     # global_crops_scale = (crops_scale_boundary, global_crops_scale[1])
                     # local_crops_scale = (local_crops_scale[0], crops_scale_boundary)
-                    # local_crops_number = 7
+                    # local_crops_number = 8
                     #
-                    # p_horizontal_crop_1, p_colorjitter_crop_1, p_grayscale_crop_1, p_gaussianblur_crop_1, p_solarize_crop_1 = 0.5657787, 0.5082960, 0.3424814, 0.7946609, 0.0747680
-                    # p_horizontal_crop_2, p_colorjitter_crop_2, p_grayscale_crop_2, p_gaussianblur_crop_2, p_solarize_crop_2 = 0.6080667, 0.5418094, 0.1957431, 0.0705700, 0.2957075
-                    # p_horizontal_crop_3, p_colorjitter_crop_3, p_grayscale_crop_3, p_gaussianblur_crop_3, p_solarize_crop_3 = 0.9940671, 0.4855698, 0.5337817, 0.2380207, 0.3032877
+                    # p_horizontal_crop_1, p_colorjitter_crop_1, p_grayscale_crop_1, p_gaussianblur_crop_1, p_solarize_crop_1 = 0.4457032, 0.8400098, 0.3523988, 0.7991407, 0.0137116
+                    # p_horizontal_crop_2, p_colorjitter_crop_2, p_grayscale_crop_2, p_gaussianblur_crop_2, p_solarize_crop_2 = 0.4318774, 0.9048964, 0.3216869, 0.0858478, 0.1224628
+                    # p_horizontal_crop_3, p_colorjitter_crop_3, p_grayscale_crop_3, p_gaussianblur_crop_3, p_solarize_crop_3 = 0.2170025, 0.4877953, 0.2123544, 0.4190477, 0.0499362
+                    
+                    # config id 1
+                    crops_scale_boundary = 0.3380264
+                    global_crops_scale = (crops_scale_boundary, global_crops_scale[1])
+                    local_crops_scale = (local_crops_scale[0], crops_scale_boundary)
+                    local_crops_number = 7
+
+                    p_horizontal_crop_1, p_colorjitter_crop_1, p_grayscale_crop_1, p_gaussianblur_crop_1, p_solarize_crop_1 = 0.5657787, 0.5082960, 0.3424814, 0.7946609, 0.0747680
+                    p_horizontal_crop_2, p_colorjitter_crop_2, p_grayscale_crop_2, p_gaussianblur_crop_2, p_solarize_crop_2 = 0.6080667, 0.5418094, 0.1957431, 0.0705700, 0.2957075
+                    p_horizontal_crop_3, p_colorjitter_crop_3, p_grayscale_crop_3, p_gaussianblur_crop_3, p_solarize_crop_3 = 0.9940671, 0.4855698, 0.5337817, 0.2380207, 0.3032877
                 elif dataset == "CIFAR-10":
                     crops_scale_boundary = 0.35
                     global_crops_scale = (crops_scale_boundary, global_crops_scale[1])
