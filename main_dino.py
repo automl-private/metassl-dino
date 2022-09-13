@@ -241,7 +241,6 @@ def train_dino(rank, working_directory, previous_working_directory, args, hyperp
             args.use_fixed_DA_hypers,
             hyperparameters,
             args.config_space,
-            args.config,
         )
     
     dataset = utils.get_dataset(args=args, transform=transform, mode="train", pretrain=True)
