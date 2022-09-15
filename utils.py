@@ -35,6 +35,7 @@ from PIL import ImageFilter, ImageOps
 from torchvision import datasets
 from collections import Counter
 from torchvision.datasets.folder import ImageFolder, default_loader
+from torchvision.datasets.inaturalist import INaturalist
 
 
 class GaussianBlur(object):
@@ -74,13 +75,14 @@ class Solarization(object):
 
 class INatDataset(ImageFolder):
     def __init__(self, root, train=True, year=2018, transform=None, target_transform=None,
-                 category='name', loader=default_loader):
+                 category='name', loader=default_loader, merge_train_val=True):
         self.transform = transform
         self.loader = loader
         self.target_transform = target_transform
         self.year = year
         # assert category in ['kingdom','phylum','class','order','supercategory','family','genus','name']
-        path_json = os.path.join(root, f'{"train" if train else "val"}{year}.json')
+        path_json = os.path.join(root, f'{"train" if train else "test"}{year}.json')
+        
         with open(path_json) as json_file:
             data = json.load(json_file)
 
@@ -111,6 +113,20 @@ class INatDataset(ImageFolder):
             categors = data_catg[target_current]
             target_current_true = targeter[categors[category]]
             self.samples.append((path_current, target_current_true))
+            
+        if merge_train_val and train:
+            path_json = os.path.join(root, f"val{year}.json")
+            with open(path_json) as json_file:
+                data_val = json.load(json_file)
+
+            for elem in data_val['images']:
+                cut = elem['file_name'].split('/')
+                target_current = int(cut[2])
+                path_current = os.path.join(root, cut[0], cut[2], cut[3])
+    
+                categors = data_catg[target_current]
+                target_current_true = targeter[categors[category]]
+                self.samples.append((path_current, target_current_true))
 
     # __getitem__ and __len__ inherited from ImageFolder
 
@@ -156,12 +172,6 @@ def get_dataset(args, transform, mode, pretrain=False):
             year=int(f"20{args.dataset[2:]}"),
             transform=transform,
             )
-        # dataset = datasets.INaturalist(
-        #     root=root,
-        #     version="2018",
-        #     download=False,
-        #     transform=transform,
-        #     )
 
     else:
         raise NotImplementedError(f"Dataset '{args.dataset}' not implemented yet!")
