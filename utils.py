@@ -167,12 +167,11 @@ def get_dataset(args, transform, mode, pretrain=False):
             )
     elif args.dataset == "inaturalist18" or args.dataset == "inaturalist19":
         dataset = INatDataset(
-            root=f"/work/dlclarge2/ferreira-iNaturalist/20{args.dataset[2:]}",
+            root=f"/work/dlclarge2/ferreira-iNaturalist/20{args.dataset[-2:]}",
             train=True if mode == "train" else False,
-            year=int(f"20{args.dataset[2:]}"),
+            year=int(f"20{args.dataset[-2:]}"),
             transform=transform,
             )
-
     else:
         raise NotImplementedError(f"Dataset '{args.dataset}' not implemented yet!")
     return dataset
