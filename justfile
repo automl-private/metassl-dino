@@ -149,6 +149,15 @@
   sbatch --output=/work/dlclarge2/wagnerd-metassl-experiments/dino/ImageNet/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --error=/work/dlclarge2/wagnerd-metassl-experiments/dino/ImageNet/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --export=EXPERIMENT_NAME={{EXPERIMENT_NAME}},SEED={{SEED}} cluster/submit_imagenet_dino_linear_evaluation_resnet50.sh
 
 # ---------------------------------------------------------------------------------------
+# Transfer to other datasets (DIANE)
+# ---------------------------------------------------------------------------------------
+# Transfer ImageNet pre-trained weigths (from baseline) to other datasets
+@transfer_baseline_weights DATASET EXPERIMENT_NAME SEED:
+  #!/usr/bin/env bash
+  mkdir -p /work/dlclarge2/wagnerd-metassl-experiments/dino/{{DATASET}}/{{EXPERIMENT_NAME}}/cluster_oe/
+  sbatch --exclude=dlcgpu42 --output=/work/dlclarge2/wagnerd-metassl-experiments/dino/{{DATASET}}/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --error=/work/dlclarge2/wagnerd-metassl-experiments/dino/{{DATASET}}/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --export=EXPERIMENT_NAME={{EXPERIMENT_NAME}},SEED={{SEED}},DATASET={{DATASET}} cluster/submit_transfer_to_dataset.sh
+
+# ---------------------------------------------------------------------------------------
 # ImageNet
 # ---------------------------------------------------------------------------------------
 
@@ -212,7 +221,7 @@
   mkdir -p /work/dlclarge2/ferreira-dino/metassl-dino/experiments/{{EXPERIMENT_NAME}}/cluster_oe/
   sbatch --output=/work/dlclarge2/ferreira-dino/metassl-dino/experiments/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --error=/work/dlclarge2/ferreira-dino/metassl-dino/experiments/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --export=EXPERIMENT_NAME={{EXPERIMENT_NAME}} cluster/submit_dino_neps_fabio_sam.sh
 
-@dino_neps_imagenet_balanced_val_data_augmentation EXPERIMENT_NAME:
+@dino_neps_imagenet_balanced_val_data_augmentation_1 EXPERIMENT_NAME:
    #!/usr/bin/env zsh
    mkdir -p /work/dlclarge2/ferreira-dino/metassl-dino/experiments/{{EXPERIMENT_NAME}}/cluster_oe/
    sbatch --output=/work/dlclarge2/ferreira-dino/metassl-dino/experiments/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --error=/work/dlclarge2/ferreira-dino/metassl-dino/experiments/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --export=EXPERIMENT_NAME={{EXPERIMENT_NAME}} cluster/submit_dino_neps_fabio_data_augmentation.sh
@@ -222,7 +231,7 @@
    mkdir -p /work/dlclarge2/ferreira-dino/metassl-dino/experiments/{{EXPERIMENT_NAME}}/cluster_oe/
    sbatch --output=/work/dlclarge2/ferreira-dino/metassl-dino/experiments/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --error=/work/dlclarge2/ferreira-dino/metassl-dino/experiments/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --export=EXPERIMENT_NAME={{EXPERIMENT_NAME}} cluster/submit_imagenet_dino_neps_fabio_train_hypers.sh
 
-@dino_neps_imagenet_balanced_val_data_augmentation EXPERIMENT_NAME:
+@dino_neps_imagenet_balanced_val_data_augmentation_2 EXPERIMENT_NAME:
    #!/usr/bin/env zsh
    mkdir -p /work/dlclarge2/ferreira-dino/metassl-dino/experiments/{{EXPERIMENT_NAME}}/cluster_oe/
    sbatch --output=/work/dlclarge2/ferreira-dino/metassl-dino/experiments/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --error=/work/dlclarge2/ferreira-dino/metassl-dino/experiments/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --export=EXPERIMENT_NAME={{EXPERIMENT_NAME}} cluster/submit_dino_neps_fabio_data_augmentation.sh
