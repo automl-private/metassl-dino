@@ -76,6 +76,7 @@ class Solarization(object):
 class INatDataset(ImageFolder):
     def __init__(self, root, train=True, year=2018, transform=None, target_transform=None,
                  category='name', loader=default_loader, merge_train_val=True):
+    
         self.transform = transform
         self.loader = loader
         self.target_transform = target_transform
@@ -166,10 +167,11 @@ def get_dataset(args, transform, mode, pretrain=False):
             transform=transform,
             )
     elif args.dataset == "inaturalist18" or args.dataset == "inaturalist19":
+        year = int(f"20{args.dataset[-2:]}")
         dataset = INatDataset(
-            root=f"/work/dlclarge2/ferreira-iNaturalist/20{args.dataset[-2:]}",
+            root=f"/work/dlclarge2/ferreira-iNaturalist/{year}",
             train=True if mode == "train" else False,
-            year=int(f"20{args.dataset[-2:]}"),
+            year=year,
             transform=transform,
             )
     else:
