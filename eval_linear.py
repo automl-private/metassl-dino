@@ -387,7 +387,7 @@ if __name__ == '__main__':
     parser.add_argument("--gpu", default=8, type=int, help="actually not needed here -- just for avoiding unrecognized arguments error")
     parser.add_argument('--config_file_path', help="actually not needed here -- just for avoiding unrecognized arguments error")
     parser.add_argument('--seed', default=0, type=int, help='Random seed.')
-    parser.add_argument('--dataset', default='ImageNet', choices=['ImageNet', 'CIFAR-10', 'CIFAR-100', 'DermaMNIST', 'cars', 'flowers', 'inaturalist'],
+    parser.add_argument('--dataset', default='ImageNet', choices=['ImageNet', 'CIFAR-10', 'CIFAR-100', 'DermaMNIST', 'cars', 'flowers', 'inaturalist18', 'inaturalist19'],
                         help='Select the dataset on which you want to run the pre-training. Default is ImageNet')
     
     args = parser.parse_args()
