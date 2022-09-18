@@ -108,6 +108,8 @@ class INatDataset(ImageFolder):
         self.samples = []
         for elem in data['images']:
             cut = elem['file_name'].split('/')
+            if len(cut) <= 3:
+                continue
             target_current = int(cut[2])
             path_current = os.path.join(root, cut[0], cut[2], cut[3])
 
@@ -122,6 +124,8 @@ class INatDataset(ImageFolder):
 
             for elem in data_val['images']:
                 cut = elem['file_name'].split('/')
+                if len(cut) <= 3:
+                    continue
                 target_current = int(cut[2])
                 path_current = os.path.join(root, cut[0], cut[2], cut[3])
     
