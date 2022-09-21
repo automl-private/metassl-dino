@@ -69,7 +69,7 @@ timm==0.5.4
 torch==1.11.0
 torchmetrics==0.5.1
 torchsummary==1.5.1
-torchvision==0.13.1
+torchvision==0.12.0
 tqdm==4.64.0
 types-Deprecated==1.2.6
 types-PyYAML==6.0.6
