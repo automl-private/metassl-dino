@@ -675,6 +675,16 @@ class DataAugmentationDINO(object):
             if use_fixed_DA_hypers:
                 if dataset == "ImageNet":
                     # config id 29
+                    # crops_scale_boundary = 0.3527670  # did not change
+                    # global_crops_scale = (crops_scale_boundary, global_crops_scale[1])
+                    # local_crops_scale = (local_crops_scale[0], crops_scale_boundary)
+                    # local_crops_number = 8  # did not change
+
+                    # p_horizontal_crop_1, p_colorjitter_crop_1, p_grayscale_crop_1, p_gaussianblur_crop_1, p_solarize_crop_1 = 0.4457032, 0.8400098, 0.3523988, 0.7991407, 0.0137116  # did not change
+                    # p_horizontal_crop_2, p_colorjitter_crop_2, p_grayscale_crop_2, p_gaussianblur_crop_2, p_solarize_crop_2 = 0.4318774, 0.9048964, 0.3216869, 0.0858478, 0.1224628  # did not change
+                    # p_horizontal_crop_3, p_colorjitter_crop_3, p_grayscale_crop_3, p_gaussianblur_crop_3, p_solarize_crop_3 = 0.3563165, 0.7404752, 0.2123544, 0.4190477, 0.0499362  # first two changed
+                    
+                    # config id 25
                     crops_scale_boundary = 0.3527670  # did not change
                     global_crops_scale = (crops_scale_boundary, global_crops_scale[1])
                     local_crops_scale = (local_crops_scale[0], crops_scale_boundary)
@@ -682,8 +692,7 @@ class DataAugmentationDINO(object):
 
                     p_horizontal_crop_1, p_colorjitter_crop_1, p_grayscale_crop_1, p_gaussianblur_crop_1, p_solarize_crop_1 = 0.4457032, 0.8400098, 0.3523988, 0.7991407, 0.0137116  # did not change
                     p_horizontal_crop_2, p_colorjitter_crop_2, p_grayscale_crop_2, p_gaussianblur_crop_2, p_solarize_crop_2 = 0.4318774, 0.9048964, 0.3216869, 0.0858478, 0.1224628  # did not change
-                    p_horizontal_crop_3, p_colorjitter_crop_3, p_grayscale_crop_3, p_gaussianblur_crop_3, p_solarize_crop_3 = 0.3563165, 0.7404752, 0.2123544, 0.4190477, 0.0499362  # first two changed
-                    
+                    p_horizontal_crop_3, p_colorjitter_crop_3, p_grayscale_crop_3, p_gaussianblur_crop_3, p_solarize_crop_3 = 0.4268004, 0.6386851, 0.2123544, 0.4190477, 0.0499362  # first two changed
                     # config id 17
                     # crops_scale_boundary = 0.3527670
                     # global_crops_scale = (crops_scale_boundary, global_crops_scale[1])
@@ -727,7 +736,26 @@ class DataAugmentationDINO(object):
                 p_horizontal_crop_1, p_colorjitter_crop_1, p_grayscale_crop_1, p_gaussianblur_crop_1, p_solarize_crop_1 = 0.5, 0.8, 0.2, 1.0, 0.0
                 p_horizontal_crop_2, p_colorjitter_crop_2, p_grayscale_crop_2, p_gaussianblur_crop_2, p_solarize_crop_2 = 0.5, 0.8, 0.2, 0.1, 0.2
                 p_horizontal_crop_3, p_colorjitter_crop_3, p_grayscale_crop_3, p_gaussianblur_crop_3, p_solarize_crop_3 = 0.5, 0.8, 0.2, 0.5, 0.0
-
+        
+        print("\n\nNEPS DATA AUGMENTATION HYPERPARAMETERS:\n")
+        print(f"global_crops_scale: {global_crops_scale}")
+        print(f"local_crops_scale: {local_crops_scale}")
+        print(f"local_crops_number: {local_crops_number}")
+        print(f"p_horizontal_crop_1: {p_horizontal_crop_1}")
+        print(f"p_colorjitter_crop_1: {p_colorjitter_crop_1}")
+        print(f"p_grayscale_crop_1: {p_grayscale_crop_1}")
+        print(f"p_gaussianblur_crop_1: {p_gaussianblur_crop_1}")
+        print(f"p_solarize_crop_1: {p_solarize_crop_1}")
+        print(f"p_horizontal_crop_2: {p_horizontal_crop_2}")
+        print(f"p_colorjitter_crop_2: {p_colorjitter_crop_2}")
+        print(f"p_grayscale_crop_2: {p_grayscale_crop_2}")
+        print(f"p_gaussianblur_crop_2: {p_gaussianblur_crop_2}")
+        print(f"p_solarize_crop_2: {p_solarize_crop_2}")
+        print(f"p_horizontal_crop_3: {p_horizontal_crop_3}")
+        print(f"p_colorjitter_crop_3: {p_colorjitter_crop_3}")
+        print(f"p_grayscale_crop_3: {p_grayscale_crop_3}")
+        print(f"p_gaussianblur_crop_3: {p_gaussianblur_crop_3}")
+        print(f"p_solarize_crop_3: {p_solarize_crop_3}")
         if dataset == "ImageNet":
             global_crop_size = 224
             local_crop_size = 96
