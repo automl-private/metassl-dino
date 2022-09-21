@@ -975,7 +975,7 @@ def stratified_split(labels, val_share):
         indices = indices_per_label[label]
         assert count == len(indices)
         shufflelist_with_seed(indices, f'2020_{label}_{count}')
-        train_val_border = round(count*(1.-val_share))
+        train_val_border = count - 130  # round(count*(1.-val_share))
         per_label_split[label] = (indices[:train_val_border], indices[train_val_border:])
     final_split = ([],[])
     for label, split in per_label_split.items():
