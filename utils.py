@@ -35,7 +35,7 @@ from PIL import ImageFilter, ImageOps
 from torchvision import datasets
 from collections import Counter
 from torchvision.datasets.folder import ImageFolder, default_loader
-from torchvision.datasets.inaturalist import INaturalist
+# from torchvision.datasets.inaturalist import INaturalist
 
 
 class GaussianBlur(object):
