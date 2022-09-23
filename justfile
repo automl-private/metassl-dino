@@ -164,13 +164,13 @@
 @imagenet_neps_data_augmentation EXPERIMENT_NAME SEED:
   #!/usr/bin/env bash
   mkdir -p /work/dlclarge1/stolld-metassl_dino/dino/ImageNet/{{EXPERIMENT_NAME}}/cluster_oe/
-  sbatch --exclude=dlcgpu16,dlcgpu17 --output=/work/dlclarge1/stolld-metassl_dino/dino/ImageNet/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --error=/work/dlclarge1/stolld-metassl_dino/dino/ImageNet/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --export=EXPERIMENT_NAME={{EXPERIMENT_NAME}},SEED={{SEED}} cluster/submit_imagenet_dino_neps_data_augmentation.sh
+  sbatch --exclude=dlcgpu47 --output=/work/dlclarge1/stolld-metassl_dino/dino/ImageNet/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --error=/work/dlclarge1/stolld-metassl_dino/dino/ImageNet/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --export=EXPERIMENT_NAME={{EXPERIMENT_NAME}},SEED={{SEED}} cluster/submit_imagenet_dino_neps_data_augmentation.sh
 
 # Run DINO NEPS (training) for ImageNet on the cluster (Danny)
 @imagenet_neps_training EXPERIMENT_NAME SEED:
   #!/usr/bin/env bash
   mkdir -p /work/dlclarge1/stolld-metassl_dino/dino/ImageNet/{{EXPERIMENT_NAME}}/cluster_oe/
-  sbatch --output=/work/dlclarge1/stolld-metassl_dino/dino/ImageNet/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --error=/work/dlclarge1/stolld-metassl_dino/dino/ImageNet/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --export=EXPERIMENT_NAME={{EXPERIMENT_NAME}},SEED={{SEED}} cluster/submit_imagenet_dino_neps_training.sh
+  sbatch --exclude=dlcgpu47 --output=/work/dlclarge1/stolld-metassl_dino/dino/ImageNet/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --error=/work/dlclarge1/stolld-metassl_dino/dino/ImageNet/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --export=EXPERIMENT_NAME={{EXPERIMENT_NAME}},SEED={{SEED}} cluster/submit_imagenet_dino_neps_training.sh
 
 # ---------------------------------------------------------------------------------------
 # Transfer to other datasets (Danny)
