@@ -580,7 +580,7 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
 
         # logging
         torch.cuda.synchronize()
-        metric_logger.update(loss=loss.item())
+        metric_logger.update(loss=loss.item() * args.batches_per_optimization_step)
         metric_logger.update(lr=optimizer.param_groups[0]["lr"])
         metric_logger.update(wd=optimizer.param_groups[0]["weight_decay"])
     # gather the stats from all processes
