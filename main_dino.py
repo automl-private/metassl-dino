@@ -565,10 +565,10 @@ def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loade
                 fp16_scaler.update()
         
         if do_optimizer_step:
-            for name, p in student.named_parameters():
-                if p.grad is not None:
-                    print(name, p.grad)
-                    break
+            # for name, p in student.named_parameters():
+            #     if p.grad is not None:
+            #         print(name, p.grad)
+            #         break
             
             # student update
             optimizer.zero_grad()
