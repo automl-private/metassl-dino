@@ -279,3 +279,13 @@
   #!/usr/bin/env bash
   mkdir -p /work/dlclarge2/ferreira-dino/metassl-dino/experiments/{{EXPERIMENT_NAME}}/cluster_oe/
   sbatch --output=/work/dlclarge2/ferreira-dino/metassl-dino/experiments/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --error=/work/dlclarge2/ferreira-dino/metassl-dino/experiments/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --export=EXPERIMENT_NAME={{EXPERIMENT_NAME}},SEED={{SEED}} cluster/submit_dino_short_pretraining.sh
+
+@imagenet_pretraining_fabio EXPERIMENT_NAME SEED:
+  #!/usr/bin/env bash
+  mkdir -p /work/dlclarge2/ferreira-dino/metassl-dino/experiments/{{EXPERIMENT_NAME}}/cluster_oe/
+  sbatch --output=/work/dlclarge2/ferreira-dino/metassl-dino/experiments/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --error=/work/dlclarge2/ferreira-dino/metassl-dino/experiments/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --export=EXPERIMENT_NAME={{EXPERIMENT_NAME}},SEED={{SEED}} cluster/submit_dino_pretraining.sh
+
+@imagenet_pretraining_grad_acc_fabio EXPERIMENT_NAME SEED:
+  #!/usr/bin/env bash
+  mkdir -p /work/dlclarge2/ferreira-dino/metassl-dino/experiments/{{EXPERIMENT_NAME}}/cluster_oe/
+  sbatch --output=/work/dlclarge2/ferreira-dino/metassl-dino/experiments/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --error=/work/dlclarge2/ferreira-dino/metassl-dino/experiments/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --export=EXPERIMENT_NAME={{EXPERIMENT_NAME}},SEED={{SEED}} cluster/submit_dino_pretraining_grad_acc.sh
