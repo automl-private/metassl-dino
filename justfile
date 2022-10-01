@@ -134,7 +134,7 @@
 @imagenet_eval EXPERIMENT_NAME SEED:
   #!/usr/bin/env bash
   mkdir -p /work/dlclarge2/wagnerd-metassl-experiments/dino/ImageNet/{{EXPERIMENT_NAME}}/cluster_oe/
-  sbatch --output=/work/dlclarge2/wagnerd-metassl-experiments/dino/ImageNet/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --error=/work/dlclarge2/wagnerd-metassl-experiments/dino/ImageNet/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --export=EXPERIMENT_NAME={{EXPERIMENT_NAME}},SEED={{SEED}} cluster/submit_imagenet_dino_linear_evaluation.sh
+  sbatch --exclude=dlcgpu24 --output=/work/dlclarge2/wagnerd-metassl-experiments/dino/ImageNet/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --error=/work/dlclarge2/wagnerd-metassl-experiments/dino/ImageNet/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --export=EXPERIMENT_NAME={{EXPERIMENT_NAME}},SEED={{SEED}} cluster/submit_imagenet_dino_linear_evaluation.sh
 
 # Run DINO pretraining for ImageNet on the cluster (Danny)
 @imagenet_pt_best_config EXPERIMENT_NAME SEED:
