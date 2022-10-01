@@ -979,7 +979,7 @@ def shufflelist_with_seed(lis, seed='2020'):
     random.setstate(s)
 
 
-def stratified_split(labels, val_share):
+def stratified_split(labels, val_share, dataset, use_balanced_val_data=True):
     if isinstance(labels, torch.Tensor):
         labels = labels.tolist()
     assert isinstance(labels, list)
@@ -990,7 +990,15 @@ def stratified_split(labels, val_share):
         indices = indices_per_label[label]
         assert count == len(indices)
         shufflelist_with_seed(indices, f'2020_{label}_{count}')
-        train_val_border = count - 130  # round(count*(1.-val_share))
+
+        if use_balanced_val_data:
+            assert dataset == "ImageNet"
+            assert (val_share == 0.1) or (val_share == 0.2)
+            train_val_border = (count - 130) if val_share == 0.1 else (count - 260)
+        else:  # use stratisfied split
+            print("Use stratisfied split for val data")
+            train_val_border = round(count*(1.-val_share))
+        
         per_label_split[label] = (indices[:train_val_border], indices[train_val_border:])
     final_split = ([],[])
     for label, split in per_label_split.items():
