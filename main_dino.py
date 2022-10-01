@@ -134,6 +134,9 @@ def get_args_parser():
                         help="Select the configspace you want to optimize with NEPS")
     parser.add_argument("--is_multifidelity_run", action="store_true", help="Store true if you want to activate multifidelity for NEPS")
     parser.add_argument("--use_fixed_DA_hypers", action="store_true", help="Store true if you want to start runs with a specific data augmentation configuration found by NEPS. Default hyperparameters will be overwritten for that run.")
+    parser.add_argument('--valid_size', type=float, default=0.1, help="Define how much data to pick from the train data as val data. 0.1 means 10%")
+    parser.add_argument('--dataset_percentage_usage', type=float, default=100, help="Define how much of your data to use. 100 means 100%. Will also influence the val data.")
+    parser.add_argument('--train_dataset_percentage_usage', type=float, default=1, help="Define how much of your train data to use. 1 means 100%. Will not influence the val data.")
 
     # Misc
     parser.add_argument('--data_path', default='/path/to/imagenet/train/', type=str,
@@ -216,9 +219,13 @@ def train_dino(rank, working_directory, previous_working_directory, args, hyperp
             # args.norm_last_layer = hyperparameters["norm_last_layer"]
         elif args.config_space == "data_augmentation":
             args.local_crops_number = hyperparameters["local_crops_number"]
-        
+
     else:
         print("\n".join("%s: %s" % (k, str(v)) for k, v in sorted(dict(vars(args)).items())))
+    
+    # Fixes bug araising when testing for few epochs
+        if args.warmup_epochs > args.epochs:
+            args.warmup_epochs = args.epochs
 
     # ============ preparing data ... ============
     if args.config_space == "groupaugment":
@@ -246,8 +253,9 @@ def train_dino(rank, working_directory, previous_working_directory, args, hyperp
         )
     
     dataset = utils.get_dataset(args=args, transform=transform, mode="train", pretrain=True)
-    valid_size = 0.1
-    dataset_percentage_usage = 100
+    valid_size = args.valid_size if args.is_neps_run else 0  # default: 0.1 for 10%
+    dataset_percentage_usage = args.dataset_percentage_usage  # default: 100 for 100%  # ToDo: Clean
+    train_dataset_percentage_usage = args.train_dataset_percentage_usage  # default: 1 for 100%
     num_train = int(len(dataset) / 100 * dataset_percentage_usage)
     indices = list(range(num_train))
     split = int(np.floor(valid_size * num_train))
@@ -257,19 +265,46 @@ def train_dino(rank, working_directory, previous_working_directory, args, hyperp
             if np.isclose(valid_size, 0.0):
                 train_idx, valid_idx = indices, indices
             else:
-                train_idx, valid_idx = utils.stratified_split(dataset.targets if hasattr(dataset, 'targets') else list(dataset.labels), valid_size)
+                train_idx, valid_idx = utils.stratified_split(dataset.targets if hasattr(dataset, 'targets') else list(dataset.labels), valid_size, args.dataset)
                 print("using balanced validation set")
+                
+                # use less train data
+                if args.train_dataset_percentage_usage != 1:  # 1 means 100%
+                    num_train_2 = int(len(train_idx))
+                    indices_2 = list(range(num_train_2))
+                    split_2 = int(np.floor(train_dataset_percentage_usage * num_train_2))
+                    _, train_idx = indices[split_2:], indices[:split_2]
         else:
             np.random.shuffle(indices)
             if np.isclose(valid_size, 0.0):
                 train_idx, valid_idx = indices, indices
             else:
                 train_idx, valid_idx = indices[split:], indices[:split]
-        
+            
+            # use less train data
+            if train_dataset_percentage_usage != 1:   # 1 means 100%
+                num_train_2 = int(len(train_idx))
+                indices_2 = list(range(num_train_2))
+                split_2 = int(np.floor(train_dataset_percentage_usage * num_train_2))
+                _, train_idx = indices[split_2:], indices[:split_2]
+
         train_sampler = torch.utils.data.distributed.DistributedSampler(train_idx)
     
     else:
-        sampler = torch.utils.data.DistributedSampler(dataset, shuffle=True)
+        # use less train data
+        if train_dataset_percentage_usage != 1:   # 1 means 100%
+            np.random.shuffle(indices)
+            if np.isclose(valid_size, 0.0):
+                train_idx, valid_idx = indices, indices
+            else:
+                train_idx, valid_idx = indices[split:], indices[:split]
+            num_train_2 = int(len(train_idx))
+            indices_2 = list(range(num_train_2))
+            split_2 = int(np.floor(train_dataset_percentage_usage * num_train_2))
+            _, train_idx = indices[split_2:], indices[:split_2]
+            sampler = torch.utils.data.distributed.DistributedSampler(train_idx)
+        else:
+            sampler = torch.utils.data.DistributedSampler(dataset, shuffle=True)
     
     data_loader = torch.utils.data.DataLoader(
         dataset,
@@ -483,6 +518,9 @@ def train_dino(rank, working_directory, previous_working_directory, args, hyperp
             finetuning_parser.add_argument('--warmup_epochs', help="actually not needed here -- just for avoiding unrecognized arguments error")
             finetuning_parser.add_argument('--dataset', default='ImageNet', choices=['ImageNet', 'CIFAR-10', 'CIFAR-100', 'DermaMNIST'], help='Select the dataset on which you want to run the pre-training. Default is ImageNet')
             finetuning_parser.add_argument('--saveckp_freq', default=20, type=int, help='Save checkpoint every x epochs.')
+            finetuning_parser.add_argument('--valid_size', type=float, default=0.1, help="Define how much data to pick from the train data as val data. 0.1 means 10%")
+            finetuning_parser.add_argument('--dataset_percentage_usage', type=float, default=100, help="Define how much of your data to use. 100 means 100%. Will also influence the val data.")
+            finetuning_parser.add_argument('--train_dataset_percentage_usage', type=float, default=1, help="Define how much of your train data to use. 1 means 100%. Will not influence the val data.")
             finetuning_args = finetuning_parser.parse_args()
             
             finetuning_args.arch = args.arch
@@ -496,6 +534,9 @@ def train_dino(rank, working_directory, previous_working_directory, args, hyperp
             finetuning_args.seed = args.seed 
             finetuning_args.assert_valid_idx = valid_idx
             finetuning_args.assert_train_idx = train_idx
+            finetuning_args.valid_size = args.valid_size
+            finetuning_args.dataset_percentage_usage = args.dataset_percentage_usage
+            finetuning_args.train_dataset_percentage_usage = args.train_dataset_percentage_usage
 
             finetuning_args.dataset = args.dataset
             finetuning_args.epochs = 100
