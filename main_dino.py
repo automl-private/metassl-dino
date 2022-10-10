@@ -877,6 +877,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
     Path(args.output_dir).mkdir(parents=True, exist_ok=True)
     
+    os.environ["NCCL_DEBUG"] = "INFO"
+    
     # DINO run with NEPS
     if args.is_neps_run:
         utils.init_distributed_mode(args, None)
