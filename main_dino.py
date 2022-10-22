@@ -162,11 +162,7 @@ def dino_neps_main(working_directory, previous_working_directory, args, **hyperp
     print(f"Number of GPUs per node detected: {ngpus_per_node}")
     
     if args.is_neps_run:
-        try:
-            train_dino(torch.distributed.get_rank(), working_directory, previous_working_directory, args, hyperparameters)
-        except Exception as e:
-            print(e)
-            return 0
+        train_dino(torch.distributed.get_rank(), working_directory, previous_working_directory, args, hyperparameters)
 
         if torch.distributed.get_rank() == 0: # assumption: rank, running neps is 0
             # Return validation metric
@@ -450,107 +446,100 @@ def train_dino(rank, working_directory, previous_working_directory, args, hyperp
     else:
         end_epoch = args.epochs
    
-    try:
-        for epoch in range(start_epoch, end_epoch):
-            data_loader.sampler.set_epoch(epoch)
-    
-            # ============ training one epoch of DINO ... ============
-            train_stats = train_one_epoch(student, teacher, teacher_without_ddp, dino_loss,
-                data_loader, optimizer, lr_schedule, wd_schedule, momentum_schedule,
-                epoch, fp16_scaler, args)
-    
-            # ============ writing logs ... ============
-            save_dict = {
-                'student': student.state_dict(),
-                'teacher': teacher.state_dict(),
-                'optimizer': optimizer.state_dict(),
-                'epoch': epoch + 1,
-                'args': args,
-                'dino_loss': dino_loss.state_dict(),
-            }
-            if fp16_scaler is not None:
-                save_dict['fp16_scaler'] = fp16_scaler.state_dict()
-            utils.save_on_master(save_dict, os.path.join(args.output_dir, 'checkpoint.pth'))
-            if args.saveckp_freq and epoch % args.saveckp_freq == 0:
-                utils.save_on_master(save_dict, os.path.join(args.output_dir, f'checkpoint{epoch:04}.pth'))
-            log_stats = {**{f'train_{k}': v for k, v in train_stats.items()},
-                         'epoch': epoch}
-            if utils.is_main_process():
-                with (Path(args.output_dir) / "log.txt").open("a") as f:
-                    f.write(json.dumps(log_stats) + "\n")
-        total_time = time.time() - start_time
-        total_time_str = str(datetime.timedelta(seconds=int(total_time)))
-        print('Training time {}'.format(total_time_str))
-    
-        if args.is_neps_run:
-            print("\n\n\nStarting Finetuning\n\n\n")
-            finetuning_parser = argparse.ArgumentParser('Evaluation with linear classification on ImageNet')
-            finetuning_parser.add_argument('--n_last_blocks', default=4, type=int, help="""Concatenate [CLS] tokens
-            for the `n` last blocks. We use `n=4` when evaluating ViT-Small and `n=1` with ViT-Base.""")
-            finetuning_parser.add_argument('--avgpool_patchtokens', default=False, type=utils.bool_flag,
-            help="""Whether ot not to concatenate the global average pooled features to the [CLS] token.
-            We typically set this to False for ViT-Small and to True with ViT-Base.""")
-            finetuning_parser.add_argument('--seed', default=0, type=int, help='Random seed.')
-            finetuning_parser.add_argument('--arch', default='vit_small', type=str, help='Architecture')
-            finetuning_parser.add_argument('--patch_size', default=16, type=int, help='Patch resolution of the model.')
-            finetuning_parser.add_argument('--pretrained_weights', default='', type=str, help="Path to pretrained weights to evaluate.")
-            finetuning_parser.add_argument("--checkpoint_key", default="teacher", type=str, help='Key to use in the checkpoint (example: "teacher")')
-            finetuning_parser.add_argument('--epochs', default=100, type=int, help='Number of epochs of training.')
-            finetuning_parser.add_argument("--lr", default=0.001, type=float, help="""Learning rate at the beginning of
-            training (highest LR used during training). The learning rate is linearly scaled
-            with the batch size, and specified here for a reference batch size of 256.
-            We recommend tweaking the LR depending on the checkpoint evaluated.""")
-            finetuning_parser.add_argument('--batch_size_per_gpu', default=128, type=int, help='Per-GPU batch-size')
-            finetuning_parser.add_argument("--dist_url", default="env://", type=str, help="""url used to set up
-            distributed training; see https://pytorch.org/docs/stable/distributed.html""")
-            finetuning_parser.add_argument("--local_rank", default=0, type=int, help="Please ignore and do not set this argument.")
-            finetuning_parser.add_argument('--data_path', default='/path/to/imagenet/', type=str)
-            finetuning_parser.add_argument('--num_workers', default=10, type=int, help='Number of data loading workers per GPU.')
-            finetuning_parser.add_argument('--val_freq', default=1, type=int, help="Epoch frequency for validation.")
-            finetuning_parser.add_argument('--output_dir', default=".", help='Path to save logs and checkpoints')
-            finetuning_parser.add_argument('--evaluate', dest='evaluate', action='store_true', help='evaluate model on validation set')
-            finetuning_parser.add_argument("--is_neps_run", action="store_true", help="Set this flag to run a NEPS experiment.")
-            finetuning_parser.add_argument("--config_space", default="data_augmentation", choices=["data_augmentation", "training"], help="Select the configspace you want to optimize with NEPS")
-            finetuning_parser.add_argument("--do_early_stopping", action="store_true", help="Set this flag to take the best test performance - Default by the DINO implementation.")
-            finetuning_parser.add_argument("--world_size", default=8, type=int, help="actually not needed here -- just for avoiding unrecognized arguments error")
-            finetuning_parser.add_argument("--gpu", default=8, type=int, help="actually not needed here -- just for avoiding unrecognized arguments error")
-            finetuning_parser.add_argument('--config_file_path', help="actually not needed here -- just for avoiding unrecognized arguments error")
-            finetuning_parser.add_argument('--warmup_epochs', help="actually not needed here -- just for avoiding unrecognized arguments error")
-            finetuning_parser.add_argument('--dataset', default='ImageNet', choices=['ImageNet', 'CIFAR-10', 'CIFAR-100', 'DermaMNIST'], help='Select the dataset on which you want to run the pre-training. Default is ImageNet')
-            finetuning_parser.add_argument('--saveckp_freq', default=20, type=int, help='Save checkpoint every x epochs.')
-            finetuning_parser.add_argument('--valid_size', type=float, default=0.1, help="Define how much data to pick from the train data as val data. 0.1 means 10%")
-            finetuning_parser.add_argument('--dataset_percentage_usage', type=float, default=100, help="Define how much of your data to use. 100 means 100%. Will also influence the val data.")
-            finetuning_parser.add_argument('--train_dataset_percentage_usage', type=float, default=1, help="Define how much of your train data to use. 1 means 100%. Will not influence the val data.")
-            finetuning_args = finetuning_parser.parse_args()
-            
-            finetuning_args.arch = args.arch
-            finetuning_args.data_path = "/data/datasets/ImageNet/imagenet-pytorch/"
-            finetuning_args.output_dir = args.output_dir
-            finetuning_args.is_neps_run = args.is_neps_run
-            finetuning_args.config_space = args.config_space
-            finetuning_args.gpu = args.gpu
-            finetuning_args.saveckp_freq = args.saveckp_freq
-            finetuning_args.pretrained_weights = str(finetuning_args.output_dir) + "/checkpoint.pth"
-            finetuning_args.seed = args.seed 
-            finetuning_args.assert_valid_idx = valid_idx
-            finetuning_args.assert_train_idx = train_idx
-            finetuning_args.valid_size = args.valid_size
-            finetuning_args.dataset_percentage_usage = args.dataset_percentage_usage
-            finetuning_args.train_dataset_percentage_usage = args.train_dataset_percentage_usage
+    for epoch in range(start_epoch, end_epoch):
+        data_loader.sampler.set_epoch(epoch)
 
-            finetuning_args.dataset = args.dataset
-            finetuning_args.epochs = 100
-            if args.is_multifidelity_run:
-                finetuning_args.epoch_fidelity = hyperparameters["epoch_fidelity"]
-            
-            eval_linear(finetuning_args)
-            
-    except:
-        if args.is_neps_run:
-            print("OUTPUT_DIR: ", args.output_dir)
-            with open(str(args.output_dir) + "/current_val_metric.txt", "w+") as f:
-                f.write(f"{0}\n")
+        # ============ training one epoch of DINO ... ============
+        train_stats = train_one_epoch(student, teacher, teacher_without_ddp, dino_loss,
+            data_loader, optimizer, lr_schedule, wd_schedule, momentum_schedule,
+            epoch, fp16_scaler, args)
 
+        # ============ writing logs ... ============
+        save_dict = {
+            'student': student.state_dict(),
+            'teacher': teacher.state_dict(),
+            'optimizer': optimizer.state_dict(),
+            'epoch': epoch + 1,
+            'args': args,
+            'dino_loss': dino_loss.state_dict(),
+        }
+        if fp16_scaler is not None:
+            save_dict['fp16_scaler'] = fp16_scaler.state_dict()
+        utils.save_on_master(save_dict, os.path.join(args.output_dir, 'checkpoint.pth'))
+        if args.saveckp_freq and epoch % args.saveckp_freq == 0:
+            utils.save_on_master(save_dict, os.path.join(args.output_dir, f'checkpoint{epoch:04}.pth'))
+        log_stats = {**{f'train_{k}': v for k, v in train_stats.items()},
+                     'epoch': epoch}
+        if utils.is_main_process():
+            with (Path(args.output_dir) / "log.txt").open("a") as f:
+                f.write(json.dumps(log_stats) + "\n")
+    total_time = time.time() - start_time
+    total_time_str = str(datetime.timedelta(seconds=int(total_time)))
+    print('Training time {}'.format(total_time_str))
+
+    if args.is_neps_run:
+        print("\n\n\nStarting Finetuning\n\n\n")
+        finetuning_parser = argparse.ArgumentParser('Evaluation with linear classification on ImageNet')
+        finetuning_parser.add_argument('--n_last_blocks', default=4, type=int, help="""Concatenate [CLS] tokens
+        for the `n` last blocks. We use `n=4` when evaluating ViT-Small and `n=1` with ViT-Base.""")
+        finetuning_parser.add_argument('--avgpool_patchtokens', default=False, type=utils.bool_flag,
+        help="""Whether ot not to concatenate the global average pooled features to the [CLS] token.
+        We typically set this to False for ViT-Small and to True with ViT-Base.""")
+        finetuning_parser.add_argument('--seed', default=0, type=int, help='Random seed.')
+        finetuning_parser.add_argument('--arch', default='vit_small', type=str, help='Architecture')
+        finetuning_parser.add_argument('--patch_size', default=16, type=int, help='Patch resolution of the model.')
+        finetuning_parser.add_argument('--pretrained_weights', default='', type=str, help="Path to pretrained weights to evaluate.")
+        finetuning_parser.add_argument("--checkpoint_key", default="teacher", type=str, help='Key to use in the checkpoint (example: "teacher")')
+        finetuning_parser.add_argument('--epochs', default=100, type=int, help='Number of epochs of training.')
+        finetuning_parser.add_argument("--lr", default=0.001, type=float, help="""Learning rate at the beginning of
+        training (highest LR used during training). The learning rate is linearly scaled
+        with the batch size, and specified here for a reference batch size of 256.
+        We recommend tweaking the LR depending on the checkpoint evaluated.""")
+        finetuning_parser.add_argument('--batch_size_per_gpu', default=128, type=int, help='Per-GPU batch-size')
+        finetuning_parser.add_argument("--dist_url", default="env://", type=str, help="""url used to set up
+        distributed training; see https://pytorch.org/docs/stable/distributed.html""")
+        finetuning_parser.add_argument("--local_rank", default=0, type=int, help="Please ignore and do not set this argument.")
+        finetuning_parser.add_argument('--data_path', default='/path/to/imagenet/', type=str)
+        finetuning_parser.add_argument('--num_workers', default=10, type=int, help='Number of data loading workers per GPU.')
+        finetuning_parser.add_argument('--val_freq', default=1, type=int, help="Epoch frequency for validation.")
+        finetuning_parser.add_argument('--output_dir', default=".", help='Path to save logs and checkpoints')
+        finetuning_parser.add_argument('--evaluate', dest='evaluate', action='store_true', help='evaluate model on validation set')
+        finetuning_parser.add_argument("--is_neps_run", action="store_true", help="Set this flag to run a NEPS experiment.")
+        finetuning_parser.add_argument("--config_space", default="data_augmentation", choices=["data_augmentation", "training"], help="Select the configspace you want to optimize with NEPS")
+        finetuning_parser.add_argument("--do_early_stopping", action="store_true", help="Set this flag to take the best test performance - Default by the DINO implementation.")
+        finetuning_parser.add_argument("--world_size", default=8, type=int, help="actually not needed here -- just for avoiding unrecognized arguments error")
+        finetuning_parser.add_argument("--gpu", default=8, type=int, help="actually not needed here -- just for avoiding unrecognized arguments error")
+        finetuning_parser.add_argument('--config_file_path', help="actually not needed here -- just for avoiding unrecognized arguments error")
+        finetuning_parser.add_argument('--warmup_epochs', help="actually not needed here -- just for avoiding unrecognized arguments error")
+        finetuning_parser.add_argument('--dataset', default='ImageNet', choices=['ImageNet', 'CIFAR-10', 'CIFAR-100', 'DermaMNIST'], help='Select the dataset on which you want to run the pre-training. Default is ImageNet')
+        finetuning_parser.add_argument('--saveckp_freq', default=20, type=int, help='Save checkpoint every x epochs.')
+        finetuning_parser.add_argument('--valid_size', type=float, default=0.1, help="Define how much data to pick from the train data as val data. 0.1 means 10%")
+        finetuning_parser.add_argument('--dataset_percentage_usage', type=float, default=100, help="Define how much of your data to use. 100 means 100%. Will also influence the val data.")
+        finetuning_parser.add_argument('--train_dataset_percentage_usage', type=float, default=1, help="Define how much of your train data to use. 1 means 100%. Will not influence the val data.")
+        finetuning_args = finetuning_parser.parse_args()
+        
+        finetuning_args.arch = args.arch
+        finetuning_args.data_path = "/data/datasets/ImageNet/imagenet-pytorch/"
+        finetuning_args.output_dir = args.output_dir
+        finetuning_args.is_neps_run = args.is_neps_run
+        finetuning_args.config_space = args.config_space
+        finetuning_args.gpu = args.gpu
+        finetuning_args.saveckp_freq = args.saveckp_freq
+        finetuning_args.pretrained_weights = str(finetuning_args.output_dir) + "/checkpoint.pth"
+        finetuning_args.seed = args.seed 
+        finetuning_args.assert_valid_idx = valid_idx
+        finetuning_args.assert_train_idx = train_idx
+        finetuning_args.valid_size = args.valid_size
+        finetuning_args.dataset_percentage_usage = args.dataset_percentage_usage
+        finetuning_args.train_dataset_percentage_usage = args.train_dataset_percentage_usage
+
+        finetuning_args.dataset = args.dataset
+        finetuning_args.epochs = 100
+        if args.is_multifidelity_run:
+            finetuning_args.epoch_fidelity = hyperparameters["epoch_fidelity"]
+        
+        eval_linear(finetuning_args)
+            
 
 def train_one_epoch(student, teacher, teacher_without_ddp, dino_loss, data_loader,
                     optimizer, lr_schedule, wd_schedule, momentum_schedule, epoch,
@@ -924,6 +913,7 @@ if __name__ == '__main__':
                 max_evaluations_total=10000,
                 max_evaluations_per_run=1,
                 overwrite_working_directory=False,
+                ignore_errors=True,
                 # eta=4,
                 # early_stopping_rate=1,
             )
