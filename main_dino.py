@@ -909,7 +909,7 @@ if __name__ == '__main__':
             neps.run(
                 run_pipeline=main_master,
                 pipeline_space=pipeline_space,
-                working_directory=args.output_dir,
+                root_directory=args.output_dir,
                 max_evaluations_total=10000,
                 max_evaluations_per_run=1,
                 overwrite_working_directory=False,
