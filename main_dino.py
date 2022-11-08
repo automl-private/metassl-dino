@@ -862,6 +862,10 @@ class DataAugmentationDINO(object):
 
 
 if __name__ == '__main__':
+    # ignore depreciations
+    import warnings
+    warnings.filterwarnings("ignore", category=DeprecationWarning) 
+
     parser = argparse.ArgumentParser('DINO', parents=[get_args_parser()])
     args = parser.parse_args()
     Path(args.output_dir).mkdir(parents=True, exist_ok=True)
