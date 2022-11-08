@@ -94,7 +94,7 @@ def get_pipeline_space(args):
                 lower=0.01, upper=0.5, log=False, default=0.1, default_confidence="medium"
             ),
             optimizer=neps.CategoricalParameter(
-                choices=['adamw', 'sgd', 'lars'], default='adamw', default_confidence="high"
+                choices=['adamw', 'sgd', 'lars'], default='adamw', default_confidence="medium"
             ),
             # use_bn_in_head=neps.CategoricalParameter(
             #     choices=[True, False], default=False, default_confidence="medium"
