@@ -35,6 +35,7 @@ from PIL import ImageFilter, ImageOps
 from torchvision import datasets
 from collections import Counter
 from torchvision.datasets.folder import ImageFolder, default_loader
+from imagenet_testv2 import ImageFolder as FolderTestV2
 # from torchvision.datasets.inaturalist import INaturalist
 
 
@@ -141,7 +142,17 @@ def get_dataset(args, transform, mode, pretrain=False):
         if pretrain:
             dataset = datasets.ImageFolder(args.data_path, transform=transform)
         else:
-            dataset = datasets.ImageFolder(os.path.join(args.data_path, mode), transform=transform)
+            if mode == "val":
+                # TESTV2
+                # TODO: Add flag for ImageNet TestV2
+                # args.data_path = "/work/dlclarge2/wagnerd-metassl-experiments/datasets/ImageNetTestV2/imagenetv2-matched-frequency-format-val"
+                # args.data_path = "/work/dlclarge2/wagnerd-metassl-experiments/datasets/ImageNetTestV2/imagenetv2-threshold0.7-format-val"
+                # dataset = FolderTestV2(args.data_path, transform=transform)
+                
+                # DEFAULT
+                dataset = datasets.ImageFolder(os.path.join(args.data_path, mode), transform=transform)
+            else:
+                dataset = datasets.ImageFolder(os.path.join(args.data_path, mode), transform=transform)
     elif args.dataset == "CIFAR-10":
         dataset = datasets.CIFAR10(
             root="datasets/CIFAR10",
