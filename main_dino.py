@@ -724,15 +724,25 @@ class DataAugmentationDINO(object):
         else:
             if use_fixed_DA_hypers:
                 if dataset == "ImageNet":
-                    # config id 4
+                    # config id 23
                     crops_scale_boundary = 0.40
                     global_crops_scale = (crops_scale_boundary, global_crops_scale[1])
                     local_crops_scale = (local_crops_scale[0], crops_scale_boundary)
                     local_crops_number = 8
 
                     p_horizontal_crop_1, p_colorjitter_crop_1, p_grayscale_crop_1, p_gaussianblur_crop_1, p_solarize_crop_1 = 0.27, 0.92, 0.32, 0.88, 0.14
-                    p_horizontal_crop_2, p_colorjitter_crop_2, p_grayscale_crop_2, p_gaussianblur_crop_2, p_solarize_crop_2 = 0.54, 0.49, 0.29, 0.07, 0.28
-                    p_horizontal_crop_3, p_colorjitter_crop_3, p_grayscale_crop_3, p_gaussianblur_crop_3, p_solarize_crop_3 = 0.30, 0.93, 0.53, 0.37, 0.17
+                    p_horizontal_crop_2, p_colorjitter_crop_2, p_grayscale_crop_2, p_gaussianblur_crop_2, p_solarize_crop_2 = 0.65, 0.76, 0.29, 0.07, 0.19
+                    p_horizontal_crop_3, p_colorjitter_crop_3, p_grayscale_crop_3, p_gaussianblur_crop_3, p_solarize_crop_3 = 0.30, 0.67, 0.27, 0.37, 0.17
+                    
+                    # config id 17 (backup)
+                    crops_scale_boundary = 0.27
+                    global_crops_scale = (crops_scale_boundary, global_crops_scale[1])
+                    local_crops_scale = (local_crops_scale[0], crops_scale_boundary)
+                    local_crops_number = 8
+
+                    p_horizontal_crop_1, p_colorjitter_crop_1, p_grayscale_crop_1, p_gaussianblur_crop_1, p_solarize_crop_1 = 0.41, 0.77, 0.26, 0.80, 0.18
+                    p_horizontal_crop_2, p_colorjitter_crop_2, p_grayscale_crop_2, p_gaussianblur_crop_2, p_solarize_crop_2 = 0.73, 0.86, 0.43, 0.12, 0.25
+                    p_horizontal_crop_3, p_colorjitter_crop_3, p_grayscale_crop_3, p_gaussianblur_crop_3, p_solarize_crop_3 = 0.64, 0.63, 0.10, 0.33, 0.07
                 elif dataset == "CIFAR-10":
                     crops_scale_boundary = 0.35
                     global_crops_scale = (crops_scale_boundary, global_crops_scale[1])
