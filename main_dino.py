@@ -220,8 +220,8 @@ def train_dino(rank, working_directory, previous_working_directory, args, hyperp
         print("\n".join("%s: %s" % (k, str(v)) for k, v in sorted(dict(vars(args)).items())))
     
     # Fixes bug araising when testing for few epochs
-        if args.warmup_epochs > args.epochs:
-            args.warmup_epochs = args.epochs
+    if args.warmup_epochs > args.epochs:
+        args.warmup_epochs = args.epochs
 
     # ============ preparing data ... ============
     if args.config_space == "groupaugment":
@@ -505,7 +505,7 @@ def train_dino(rank, working_directory, previous_working_directory, args, hyperp
         finetuning_parser.add_argument('--output_dir', default=".", help='Path to save logs and checkpoints')
         finetuning_parser.add_argument('--evaluate', dest='evaluate', action='store_true', help='evaluate model on validation set')
         finetuning_parser.add_argument("--is_neps_run", action="store_true", help="Set this flag to run a NEPS experiment.")
-        finetuning_parser.add_argument("--config_space", default="data_augmentation", choices=["data_augmentation", "training"], help="Select the configspace you want to optimize with NEPS")
+        finetuning_parser.add_argument("--config_space", default="data_augmentation", choices=["data_augmentation", "training", "groupaugment"], help="Select the configspace you want to optimize with NEPS")
         finetuning_parser.add_argument("--do_early_stopping", action="store_true", help="Set this flag to take the best test performance - Default by the DINO implementation.")
         finetuning_parser.add_argument("--world_size", default=8, type=int, help="actually not needed here -- just for avoiding unrecognized arguments error")
         finetuning_parser.add_argument("--gpu", default=8, type=int, help="actually not needed here -- just for avoiding unrecognized arguments error")

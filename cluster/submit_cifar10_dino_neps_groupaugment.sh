@@ -1,14 +1,13 @@
 #!/bin/bash
-#SBATCH -p testdlc_gpu-rtx2080
-##SBATCH -q dlc-wagnerd
+#SBATCH -p alldlc_gpu-rtx2080
 #SBATCH --gres=gpu:1
 #SBATCH -J GA_C10_NEPS_DINO
 ##SBATCH -t 23:59:59
-#SBATCH --array 0-49%1
-
-pip list
+#SBATCH --array 0-49%10
 
 source activate dino
+
+pip list
 
 port=`python cluster/find_free_port.py`
 echo "found free port $port"

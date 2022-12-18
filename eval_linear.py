@@ -147,7 +147,7 @@ def eval_linear(args):
             else:
                 train_idx, valid_idx = indices[split:], indices[:split]
             
-            assert valid_idx[:10] == args.assert_valid_idx
+            assert valid_idx[:10] == args.assert_valid_idx[:10]
     
             train_sampler = torch.utils.data.distributed.DistributedSampler(train_idx)
             valid_sampler = torch.utils.data.distributed.DistributedSampler(valid_idx)
