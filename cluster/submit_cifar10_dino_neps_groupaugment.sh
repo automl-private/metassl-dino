@@ -1,9 +1,9 @@
 #!/bin/bash
-#SBATCH -p alldlc_gpu-rtx2080
+#SBATCH -p mldlc_gpu-rtx2080
 #SBATCH --gres=gpu:1
 #SBATCH -J GA_C10_NEPS_DINO
-##SBATCH -t 23:59:59
-#SBATCH --array 0-49%10
+#SBATCH -t 2-23:59:59
+#SBATCH --array 0-19%20
 
 source activate dino
 

@@ -166,6 +166,12 @@
   mkdir -p /work/dlclarge2/wagnerd-metassl-experiments/dino/ImageNet/{{EXPERIMENT_NAME}}/cluster_oe/
   sbatch --exclude=dlcgpu47 --output=/work/dlclarge2/wagnerd-metassl-experiments/dino/ImageNet/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --error=/work/dlclarge2/wagnerd-metassl-experiments/dino/ImageNet/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --export=EXPERIMENT_NAME={{EXPERIMENT_NAME}},SEED={{SEED}} cluster/submit_imagenet_dino_neps_data_augmentation.sh
 
+# Run DINO NEPS (groupaugment) for ImageNet on the cluster (Diane)
+@imagenet_neps_groupaugment EXPERIMENT_NAME SEED:
+  #!/usr/bin/env bash
+  mkdir -p /work/dlclarge2/wagnerd-metassl-experiments/dino/ImageNet/{{EXPERIMENT_NAME}}/cluster_oe/
+  sbatch --exclude=dlcgpu47 --output=/work/dlclarge2/wagnerd-metassl-experiments/dino/ImageNet/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --error=/work/dlclarge2/wagnerd-metassl-experiments/dino/ImageNet/{{EXPERIMENT_NAME}}/cluster_oe/%x.%A.%a.%N.err_out --export=EXPERIMENT_NAME={{EXPERIMENT_NAME}},SEED={{SEED}} cluster/submit_imagenet_dino_neps_groupaugment.sh
+
 # Run DINO NEPS (training) for ImageNet on the cluster (Danny)
 @imagenet_neps_training EXPERIMENT_NAME SEED:
   #!/usr/bin/env bash
