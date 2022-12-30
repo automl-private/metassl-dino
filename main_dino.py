@@ -130,7 +130,7 @@ def get_args_parser():
     # NEPS
     parser.add_argument("--is_neps_run", action="store_true", help="Set this flag to run a NEPS experiment.")
     parser.add_argument("--config_space", default="data_augmentation",
-                        choices=["data_augmentation", "training", "groupaugment"],
+                        choices=["data_augmentation", "training", "groupaugment", "joint"],
                         help="Select the configspace you want to optimize with NEPS")
     parser.add_argument("--is_multifidelity_run", action="store_true", help="Store true if you want to activate multifidelity for NEPS")
     parser.add_argument("--use_fixed_DA_hypers", action="store_true", help="Store true if you want to start runs with a specific data augmentation configuration found by NEPS. Default hyperparameters will be overwritten for that run.")
@@ -198,7 +198,7 @@ def train_dino(rank, working_directory, previous_working_directory, args, hyperp
         print("NEPS training hyperparameters: ", hyperparameters)
         
         # Parameterize hyperparameters
-        if args.config_space == "training":
+        if args.config_space == "training" or args.config_space == "joint":
             args.lr = hyperparameters["lr"]
             args.out_dim = hyperparameters["out_dim"]
             args.momentum_teacher = hyperparameters["momentum_teacher"]
@@ -213,8 +213,9 @@ def train_dino(rank, working_directory, previous_working_directory, args, hyperp
             args.optimizer = hyperparameters["optimizer"]
             # args.use_bn_in_head = hyperparameters["use_bn_in_head"]
             # args.norm_last_layer = hyperparameters["norm_last_layer"]
-        elif args.config_space == "data_augmentation":
-            args.local_crops_number = hyperparameters["local_crops_number"]
+        
+        # if args.config_space == "data_augmentation" or args.config_space == "joint":
+        #     args.local_crops_number = hyperparameters["local_crops_number"]
 
     else:
         print("\n".join("%s: %s" % (k, str(v)) for k, v in sorted(dict(vars(args)).items())))
@@ -505,7 +506,7 @@ def train_dino(rank, working_directory, previous_working_directory, args, hyperp
         finetuning_parser.add_argument('--output_dir', default=".", help='Path to save logs and checkpoints')
         finetuning_parser.add_argument('--evaluate', dest='evaluate', action='store_true', help='evaluate model on validation set')
         finetuning_parser.add_argument("--is_neps_run", action="store_true", help="Set this flag to run a NEPS experiment.")
-        finetuning_parser.add_argument("--config_space", default="data_augmentation", choices=["data_augmentation", "training", "groupaugment"], help="Select the configspace you want to optimize with NEPS")
+        finetuning_parser.add_argument("--config_space", default="data_augmentation", choices=["data_augmentation", "training", "groupaugment", "joint"], help="Select the configspace you want to optimize with NEPS")
         finetuning_parser.add_argument("--do_early_stopping", action="store_true", help="Set this flag to take the best test performance - Default by the DINO implementation.")
         finetuning_parser.add_argument("--world_size", default=8, type=int, help="actually not needed here -- just for avoiding unrecognized arguments error")
         finetuning_parser.add_argument("--gpu", default=8, type=int, help="actually not needed here -- just for avoiding unrecognized arguments error")
@@ -516,6 +517,9 @@ def train_dino(rank, working_directory, previous_working_directory, args, hyperp
         finetuning_parser.add_argument('--valid_size', type=float, default=0.1, help="Define how much data to pick from the train data as val data. 0.1 means 10%")
         finetuning_parser.add_argument('--dataset_percentage_usage', type=float, default=100, help="Define how much of your data to use. 100 means 100%. Will also influence the val data.")
         finetuning_parser.add_argument('--train_dataset_percentage_usage', type=float, default=1, help="Define how much of your train data to use. 1 means 100%. Will not influence the val data.")
+        finetuning_parser.add_argument('--local_crops_number', type=int, default=8, help="""Number of small
+        local views to generate. Set this parameter to 0 to disable multi-crop training.
+        When disabling multi-crop we recommend to use "--global_crops_scale 0.14 1." """)
         finetuning_args = finetuning_parser.parse_args()
         
         finetuning_args.arch = args.arch
@@ -532,6 +536,7 @@ def train_dino(rank, working_directory, previous_working_directory, args, hyperp
         finetuning_args.valid_size = args.valid_size
         finetuning_args.dataset_percentage_usage = args.dataset_percentage_usage
         finetuning_args.train_dataset_percentage_usage = args.train_dataset_percentage_usage
+        finetuning_args.local_crops_number = args.local_crops_number
 
         finetuning_args.dataset = args.dataset
         finetuning_args.epochs = 100
@@ -678,11 +683,11 @@ class DINOLoss(nn.Module):
 
 class DataAugmentationDINO(object):
     def __init__(self, dataset, global_crops_scale, local_crops_scale, local_crops_number, is_neps_run, use_fixed_DA_hypers, hyperparameters=None, config_space=None):
-        if is_neps_run and config_space == "data_augmentation":
+        if is_neps_run and (config_space == "data_augmentation" or config_space == "joint"):
             crops_scale_boundary = hyperparameters["crops_scale_boundary"]
             global_crops_scale = (crops_scale_boundary, global_crops_scale[1])
             local_crops_scale = (local_crops_scale[0], crops_scale_boundary)
-            local_crops_number = hyperparameters["local_crops_number"]
+            # local_crops_number = hyperparameters["local_crops_number"]
 
             p_horizontal_crop_1 = hyperparameters["p_horizontal_crop_1"]
             p_colorjitter_crop_1 = hyperparameters["p_colorjitter_crop_1"]
@@ -705,7 +710,7 @@ class DataAugmentationDINO(object):
             print("\n\nNEPS DATA AUGMENTATION HYPERPARAMETERS:\n")
             print(f"global_crops_scale: {global_crops_scale}")
             print(f"local_crops_scale: {local_crops_scale}")
-            print(f"local_crops_number: {local_crops_number}")
+            # print(f"local_crops_number: {local_crops_number}")
             print(f"p_horizontal_crop_1: {p_horizontal_crop_1}")
             print(f"p_colorjitter_crop_1: {p_colorjitter_crop_1}")
             print(f"p_grayscale_crop_1: {p_grayscale_crop_1}")
@@ -771,7 +776,7 @@ class DataAugmentationDINO(object):
         print("\n\nNEPS DATA AUGMENTATION HYPERPARAMETERS:\n")
         print(f"global_crops_scale: {global_crops_scale}")
         print(f"local_crops_scale: {local_crops_scale}")
-        print(f"local_crops_number: {local_crops_number}")
+        # print(f"local_crops_number: {local_crops_number}")
         print(f"p_horizontal_crop_1: {p_horizontal_crop_1}")
         print(f"p_colorjitter_crop_1: {p_colorjitter_crop_1}")
         print(f"p_grayscale_crop_1: {p_grayscale_crop_1}")
