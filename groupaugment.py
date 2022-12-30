@@ -36,13 +36,14 @@ def get_groupaugment_transformation(
     n_exotic_transformations,
     n_total,
     normalize,
-    crop_size
+    crop_size,
+    crop_scale
 ):
     transform = Compose(
         [
             # basic SSL transformation
             RandomResizedCrop(
-                height=crop_size, width=crop_size, scale=(0.2, 1.0), interpolation=cv2.INTER_CUBIC
+                height=crop_size, width=crop_size, scale=crop_scale, interpolation=cv2.INTER_CUBIC
             ),
             SomeOf(
                 [
@@ -50,7 +51,7 @@ def get_groupaugment_transformation(
                     SomeOf(
                         [
                             ColorJitter(
-                                brightness=0.4, contrast=0.4, saturation=0.4, hue=0.1, p=1
+                                brightness=0.4, contrast=0.4, saturation=0.2, hue=0.1, p=1
                             ),
                             ToGray(p=1),
                             Solarize(p=1),

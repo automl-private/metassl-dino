@@ -302,58 +302,144 @@ class GroupAugmentDataAugmentationDINO(object):
             normalize = [[0.5071, 0.4865, 0.4409], [0.2673, 0.2564, 0.2762]]  # mean, std
         else:
             raise NotImplementedError(f"Dataset '{args.dataset}' not implemented yet!")
+        
+        if False:
+            # Test default DINO data augmentation with albumentations
+            import cv2
+            import torchvision.transforms as transforms
+            from albumentations import (
+                ChannelShuffle,
+                ColorJitter,
+                Compose,
+                Cutout,
+                ElasticTransform,
+                Equalize,
+                GaussianBlur,
+                GaussNoise,
+                GridDistortion,
+                HorizontalFlip,
+                Normalize,
+                OpticalDistortion,
+                RandomGridShuffle,
+                RandomResizedCrop,
+                Solarize,
+                SomeOf,
+                ToGray,
+            )
+            from albumentations.augmentations.geometric.transforms import ShiftScaleRotate
+            from albumentations.pytorch.transforms import ToTensorV2
+            
+            # first global crop
+            self.global_transfo1 = Compose(
+                [
+                    RandomResizedCrop(height=global_crop_size, width=global_crop_size, scale=(0.4, 1.0), interpolation=cv2.INTER_CUBIC),
+                    
+                    HorizontalFlip(p=0.5),
+                    ColorJitter(brightness=0.4, contrast=0.4, saturation=0.2, hue=0.1, p=0.8),
+                    ToGray(p=0.2),
+                    GaussianBlur(p=1.0),
+                    Solarize(p=0.0),
 
-        # first global crop
-        self.global_transfo1 = get_groupaugment_transformation(
-            p_color_transformations_crop_1,
-            p_geometric_transformations_crop_1,
-            p_non_rigid_transformations_crop_1,
-            p_quality_transformations_crop_1,
-            p_exotic_transformations_crop_1,
-            n_color_transformations,
-            n_geometric_transformations,
-            n_non_rigid_transformations,
-            n_quality_transformations,
-            n_exotic_transformations,
-            n_total,
-            normalize,
-            global_crop_size
-        )
+                    Normalize(normalize[0], normalize[1]),
+                    ToTensorV2(),
 
-        # second global crop
-        self.global_transfo2 = get_groupaugment_transformation(
-            p_color_transformations_crop_2,
-            p_geometric_transformations_crop_2,
-            p_non_rigid_transformations_crop_2,
-            p_quality_transformations_crop_2,
-            p_exotic_transformations_crop_2,
-            n_color_transformations,
-            n_geometric_transformations,
-            n_non_rigid_transformations,
-            n_quality_transformations,
-            n_exotic_transformations,
-            n_total,
-            normalize,
-            global_crop_size
-        )
+                ],
+                p=1,
+            )
+            
+            # second global crop
+            self.global_transfo2 = Compose(
+                [
+                    RandomResizedCrop(height=global_crop_size, width=global_crop_size, scale=(0.4, 1.0), interpolation=cv2.INTER_CUBIC),
 
-        # transformation for the local small crops
-        self.local_crops_number = local_crops_number
-        self.local_transfo = get_groupaugment_transformation(
-            p_color_transformations_crop_3,
-            p_geometric_transformations_crop_3,
-            p_non_rigid_transformations_crop_3,
-            p_quality_transformations_crop_3,
-            p_exotic_transformations_crop_3,
-            n_color_transformations,
-            n_geometric_transformations,
-            n_non_rigid_transformations,
-            n_quality_transformations,
-            n_exotic_transformations,
-            n_total,
-            normalize,
-            local_crop_size
-        )
+                    HorizontalFlip(p=0.5),
+                    ColorJitter(brightness=0.4, contrast=0.4, saturation=0.2, hue=0.1, p=0.8),
+                    ToGray(p=0.2),
+                    GaussianBlur(p=0.1),
+                    Solarize(p=0.2),
+
+                    Normalize(normalize[0], normalize[1]),
+                    ToTensorV2(),
+
+                ],
+                p=1,
+            )
+            
+            # local crops
+            self.local_crops_number = local_crops_number
+            self.local_transfo = Compose(
+                [
+                    RandomResizedCrop(height=local_crop_size, width=local_crop_size, scale=(0.05, 0.4), interpolation=cv2.INTER_CUBIC),
+
+                    HorizontalFlip(p=0.5),
+                    ColorJitter(brightness=0.4, contrast=0.4, saturation=0.2, hue=0.1, p=0.8),
+                    ToGray(p=0.2),
+                    GaussianBlur(p=0.5),
+                    Solarize(p=0.0),
+
+                    Normalize(normalize[0], normalize[1]),
+                    ToTensorV2(),
+
+                ],
+                p=1,
+            )
+
+        else:
+            print("\n\nGroupAugment\n\n")
+            # first global crop
+            self.global_transfo1 = get_groupaugment_transformation(
+                p_color_transformations_crop_1,
+                p_geometric_transformations_crop_1,
+                p_non_rigid_transformations_crop_1,
+                p_quality_transformations_crop_1,
+                p_exotic_transformations_crop_1,
+                n_color_transformations,
+                n_geometric_transformations,
+                n_non_rigid_transformations,
+                n_quality_transformations,
+                n_exotic_transformations,
+                n_total,
+                normalize,
+                global_crop_size,
+                global_crops_scale
+            )
+
+            # second global crop
+            self.global_transfo2 = get_groupaugment_transformation(
+                p_color_transformations_crop_2,
+                p_geometric_transformations_crop_2,
+                p_non_rigid_transformations_crop_2,
+                p_quality_transformations_crop_2,
+                p_exotic_transformations_crop_2,
+                n_color_transformations,
+                n_geometric_transformations,
+                n_non_rigid_transformations,
+                n_quality_transformations,
+                n_exotic_transformations,
+                n_total,
+                normalize,
+                global_crop_size,
+                global_crops_scale
+            )
+
+            # transformation for the local small crops
+            self.local_crops_number = local_crops_number
+            self.local_transfo = get_groupaugment_transformation(
+                p_color_transformations_crop_3,
+                p_geometric_transformations_crop_3,
+                p_non_rigid_transformations_crop_3,
+                p_quality_transformations_crop_3,
+                p_exotic_transformations_crop_3,
+                n_color_transformations,
+                n_geometric_transformations,
+                n_non_rigid_transformations,
+                n_quality_transformations,
+                n_exotic_transformations,
+                n_total,
+                normalize,
+                local_crop_size,
+                local_crops_scale
+            )
     def __call__(self, image):
         crops = []
         image = np.array(image)
