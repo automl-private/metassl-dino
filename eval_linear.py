@@ -115,10 +115,13 @@ def eval_linear(args):
         pth_transforms.ToTensor(),
         normalize,
     ])
+    
+    if args.dataset == "ImageNet" and args.use_imagenet_subset:
+            args.data_path = "/work/dlclarge2/wagnerd-metassl-experiments/datasets/ImageNetSubset/10percent/"
 
     dataset_train = utils.get_dataset(args=args, transform=train_transform, mode="train")
 
-    if args.is_neps_run:
+    if args.is_neps_run and not args.use_val_as_val:
         if args.dataset == "ImageNet":
             # balanced valid dataset
             # assumption: training dataset in `total_trainset` and you take care of doing the right thing with the transforms (as they are shared with `total_trainset`).
@@ -153,19 +156,25 @@ def eval_linear(args):
             valid_sampler = torch.utils.data.distributed.DistributedSampler(valid_idx)
     
     else:
+        # use val as val and test v2 as test
+        if args.dataset == "ImageNet" and args.use_val_as_val:
+            valid_size = 0
+            print("Use val as val and test v2 as test")
+
         dataset_val = utils.get_dataset(args=args, transform=val_transform, mode="val")
-        sampler = torch.utils.data.distributed.DistributedSampler(dataset_train)
-    
+        train_sampler = torch.utils.data.distributed.DistributedSampler(dataset_train)
+        valid_sampler = None
+
     train_loader = torch.utils.data.DataLoader(
         dataset_train,
-        sampler=train_sampler if args.is_neps_run else sampler,
+        sampler=train_sampler,
         batch_size=args.batch_size_per_gpu,
         num_workers=args.num_workers,
         pin_memory=True,
     )
     val_loader = torch.utils.data.DataLoader(
         dataset_val,
-        sampler=valid_sampler if args.is_neps_run else None,
+        sampler=valid_sampler,
         batch_size=args.batch_size_per_gpu,
         num_workers=args.num_workers,
         pin_memory=True,
@@ -177,7 +186,7 @@ def eval_linear(args):
         print(f"Accuracy of the network on the {len(dataset_val)} test images: {test_stats['acc1']:.1f}%")
         return
     
-    if args.is_neps_run:
+    if args.is_neps_run and not args.use_val_as_val:
         if args.dataset == "ImageNet":
             print(f"Data loaded with {len(args.assert_train_idx)} train and {len(args.assert_valid_idx)} val imgs.")
         else:
@@ -389,6 +398,10 @@ if __name__ == '__main__':
     parser.add_argument('--seed', default=0, type=int, help='Random seed.')
     parser.add_argument('--dataset', default='ImageNet', choices=['ImageNet', 'CIFAR-10', 'CIFAR-100', 'DermaMNIST', 'cars', 'flowers', 'inaturalist18', 'inaturalist19'],
                         help='Select the dataset on which you want to run the pre-training. Default is ImageNet')
-    
+    parser.add_argument('--valid_size', type=float, default=0.1, help="Define how much data to pick from the train data as val data. 0.1 means 10%")
+    parser.add_argument('--dataset_percentage_usage', type=float, default=100, help="Define how much of your data to use. 100 means 100%. Will also influence the val data.")
+    parser.add_argument('--train_dataset_percentage_usage', type=float, default=1, help="Define how much of your train data to use. 1 means 100%. Will not influence the val data.")
+    parser.add_argument("--use_val_as_val", action="store_true", help="Use the validation set from ImageNet (which corresponds to the test set) as validation set. Use Test V2 as test set.")
+    parser.add_argument("--use_imagenet_subset", action="store_true", help="Use a subset of the ImageNet dataset (containing 10% of the classes).")
     args = parser.parse_args()
     eval_linear(args)

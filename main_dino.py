@@ -137,6 +137,7 @@ def get_args_parser():
     parser.add_argument('--valid_size', type=float, default=0.1, help="Define how much data to pick from the train data as val data. 0.1 means 10%")
     parser.add_argument('--dataset_percentage_usage', type=float, default=100, help="Define how much of your data to use. 100 means 100%. Will also influence the val data.")
     parser.add_argument('--train_dataset_percentage_usage', type=float, default=1, help="Define how much of your train data to use. 1 means 100%. Will not influence the val data.")
+    parser.add_argument("--use_val_as_val", action="store_true", help="Use the validation set from ImageNet (which corresponds to the test set) as validation set. Use Test V2 as test set.")
 
     # Misc
     parser.add_argument('--data_path', default='/path/to/imagenet/train/', type=str,
@@ -153,6 +154,7 @@ def get_args_parser():
     parser.add_argument('--config_file_path', help="Should be set to a path that does not exist.")
     parser.add_argument('--dataset', default='ImageNet', choices=['ImageNet', 'CIFAR-10', 'CIFAR-100', 'DermaMNIST', 'cars', 'flowers', 'inaturalist18', 'inaturalist19'],
                         help='Select the dataset on which you want to run the pre-training. Default is ImageNet')
+    parser.add_argument("--use_imagenet_subset", action="store_true", help="Use a subset of the ImageNet dataset (containing 10% of the classes).")
     return parser
 
 
@@ -249,6 +251,8 @@ def train_dino(rank, working_directory, previous_working_directory, args, hyperp
             args.config_space,
         )
     
+    if args.dataset == "ImageNet" and args.use_imagenet_subset:
+            args.data_path = "/work/dlclarge2/wagnerd-metassl-experiments/datasets/ImageNetSubset/10percent/train"
     dataset = utils.get_dataset(args=args, transform=transform, mode="train", pretrain=True)
     valid_size = args.valid_size if args.is_neps_run else 0  # default: 0.1 for 10%
     dataset_percentage_usage = args.dataset_percentage_usage  # default: 100 for 100%  # ToDo: Clean
@@ -257,7 +261,7 @@ def train_dino(rank, working_directory, previous_working_directory, args, hyperp
     indices = list(range(num_train))
     split = int(np.floor(valid_size * num_train))
     
-    if args.is_neps_run:
+    if args.is_neps_run and not args.use_val_as_val:
         if args.dataset == "ImageNet":
             if np.isclose(valid_size, 0.0):
                 train_idx, valid_idx = indices, indices
@@ -272,6 +276,11 @@ def train_dino(rank, working_directory, previous_working_directory, args, hyperp
                     split_2 = int(np.floor(train_dataset_percentage_usage * num_train_2))
                     _, train_idx = indices[split_2:], indices[:split_2]
         else:
+            # use val as val and test v2 as test
+            if args.dataset == "ImageNet" and args.use_val_as_val:
+                valid_size = 0
+                print("Use val as val and test v2 as test")
+                
             np.random.shuffle(indices)
             if np.isclose(valid_size, 0.0):
                 train_idx, valid_idx = indices, indices
@@ -299,20 +308,20 @@ def train_dino(rank, working_directory, previous_working_directory, args, hyperp
             indices_2 = list(range(num_train_2))
             split_2 = int(np.floor(train_dataset_percentage_usage * num_train_2))
             _, train_idx = indices[split_2:], indices[:split_2]
-            sampler = torch.utils.data.distributed.DistributedSampler(train_idx)
+            train_sampler = torch.utils.data.distributed.DistributedSampler(train_idx)
         else:
-            sampler = torch.utils.data.DistributedSampler(dataset, shuffle=True)
+            train_sampler = torch.utils.data.DistributedSampler(dataset, shuffle=True)
     
     data_loader = torch.utils.data.DataLoader(
         dataset,
-        sampler=train_sampler if args.is_neps_run else sampler,
+        sampler=train_sampler,
         batch_size=args.batch_size_per_gpu,
         num_workers=args.num_workers,
         pin_memory=True,
         drop_last=True,
     )
     
-    if args.is_neps_run:
+    if args.is_neps_run and not args.use_val_as_val:
         print(f"Data loaded: there are {len(train_idx)} images.")
     else:
         print(f"Data loaded: there are {len(dataset)} images.")
@@ -517,22 +526,31 @@ def train_dino(rank, working_directory, previous_working_directory, args, hyperp
         finetuning_parser.add_argument('--valid_size', type=float, default=0.1, help="Define how much data to pick from the train data as val data. 0.1 means 10%")
         finetuning_parser.add_argument('--dataset_percentage_usage', type=float, default=100, help="Define how much of your data to use. 100 means 100%. Will also influence the val data.")
         finetuning_parser.add_argument('--train_dataset_percentage_usage', type=float, default=1, help="Define how much of your train data to use. 1 means 100%. Will not influence the val data.")
+        finetuning_parser.add_argument("--use_val_as_val", action="store_true", help="Use the validation set from ImageNet (which corresponds to the test set) as validation set. Use Test V2 as test set.")
         finetuning_parser.add_argument('--local_crops_number', type=int, default=8, help="""Number of small
         local views to generate. Set this parameter to 0 to disable multi-crop training.
         When disabling multi-crop we recommend to use "--global_crops_scale 0.14 1." """)
+        finetuning_parser.add_argument("--use_imagenet_subset", action="store_true", help="Use a subset of the ImageNet dataset (containing 10% of the classes).")
         finetuning_args = finetuning_parser.parse_args()
         
         finetuning_args.arch = args.arch
-        finetuning_args.data_path = "/data/datasets/ImageNet/imagenet-pytorch/"
+        if args.dataset == "ImageNet" and args.use_imagenet_subset:
+            finetuning_args.data_path = "/work/dlclarge2/wagnerd-metassl-experiments/datasets/ImageNetSubset/10percent/"
+            finetuning_args.val_freq = 10
+        else:
+            finetuning_args.data_path = "/data/datasets/ImageNet/imagenet-pytorch/"
+        finetuning_args.use_imagenet_subset = args.use_imagenet_subset
         finetuning_args.output_dir = args.output_dir
         finetuning_args.is_neps_run = args.is_neps_run
         finetuning_args.config_space = args.config_space
         finetuning_args.gpu = args.gpu
         finetuning_args.saveckp_freq = args.saveckp_freq
         finetuning_args.pretrained_weights = str(finetuning_args.output_dir) + "/checkpoint.pth"
-        finetuning_args.seed = args.seed 
-        finetuning_args.assert_valid_idx = valid_idx
-        finetuning_args.assert_train_idx = train_idx
+        finetuning_args.seed = args.seed
+        if not args.use_val_as_val:
+            finetuning_args.assert_valid_idx = valid_idx
+            finetuning_args.assert_train_idx = train_idx
+        finetuning_args.use_val_as_val = args.use_val_as_val
         finetuning_args.valid_size = args.valid_size
         finetuning_args.dataset_percentage_usage = args.dataset_percentage_usage
         finetuning_args.train_dataset_percentage_usage = args.train_dataset_percentage_usage
