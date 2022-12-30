@@ -2,15 +2,23 @@
 #SBATCH -p mldlc_gpu-rtx2080
 #SBATCH --gres=gpu:8
 #SBATCH -J IN_PT_DINO_ViT
-#SBATCH -t 1-09:59:59
+#SBATCH -t 2-00:00:00
 
 pip list
 
 source activate dino
 
+echo $(date)
+
 # Baseline
-python -u -m torch.distributed.launch --use_env --nproc_per_node=8 --nnodes 1 main_dino.py --arch vit_small --data_path /data/datasets/ImageNet/imagenet-pytorch/train --output_dir /work/dlclarge2/wagnerd-metassl-experiments/dino/ImageNet/$EXPERIMENT_NAME --batch_size_per_gpu 32 --saveckp_freq 10 --seed $SEED \
-	--train_dataset_percentage_usage 0.1 --valid_size 0.1
+# python -u -m torch.distributed.launch --use_env --nproc_per_node=8 --nnodes 1 main_dino.py --arch vit_small --data_path /data/datasets/ImageNet/imagenet-pytorch/train --output_dir /work/dlclarge2/wagnerd-metassl-experiments/dino/ImageNet/$EXPERIMENT_NAME --batch_size_per_gpu 32 --saveckp_freq 10 --seed $SEED \
+# 	--train_dataset_percentage_usage 1.0 --valid_size 0.0 --local_crops_number 2 \
+	# --batches_per_optimization_step 4
+
+# Baseline with 10% of classes
+python -u -m torch.distributed.launch --use_env --nproc_per_node=8 --nnodes 1 main_dino.py --arch vit_small --data_path /work/dlclarge2/wagnerd-metassl-experiments/datasets/ImageNetSubset/10percent/train --output_dir /work/dlclarge2/wagnerd-metassl-experiments/dino/ImageNet/$EXPERIMENT_NAME --batch_size_per_gpu 32 --saveckp_freq 10 --seed $SEED \
+        --train_dataset_percentage_usage 1.0 --valid_size 0.0 --local_crops_number 8 \
+        --batches_per_optimization_step 4
 
 # Best DA config 23 or Best DA config 17 (backup)
 # python -u -m torch.distributed.launch --use_env --nproc_per_node=8 --nnodes 1 main_dino.py --arch vit_small --data_path /data/datasets/ImageNet/imagenet-pytorch/train --output_dir /work/dlclarge2/wagnerd-metassl-experiments/dino/ImageNet/$EXPERIMENT_NAME --batch_size_per_gpu 32 --saveckp_freq 10 --seed $SEED --use_fixed_DA_hypers --local_crops_number 8
@@ -29,3 +37,5 @@ python -u -m torch.distributed.launch --use_env --nproc_per_node=8 --nnodes 1 ma
 #        --min_lr 0.0000033 \
 #        --drop_path_rate 0.3841327 \
 #        --optimizer adamw
+
+echo $(date)
