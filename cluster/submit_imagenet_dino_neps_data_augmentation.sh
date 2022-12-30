@@ -1,11 +1,10 @@
 #!/bin/bash
-#SBATCH -p alldlc_gpu-rtx2080
-##SBATCH -q dlc-wagnerd
+#SBATCH -p mldlc_gpu-rtx2080
 #SBATCH --gres=gpu:8
 #SBATCH -J IN_DA
-##SBATCH -t 3-23:59:59
-#SBATCH -t 00:29:59
-##SBATCH --array 0-24%10
+#SBATCH -t 0-23:59:59
+##SBATCH -t 00:29:59
+#SBATCH --array 0-49%5
 
 pip list
 
@@ -23,5 +22,11 @@ source activate dino
 mkdir -p /work/dlclarge2/wagnerd-metassl-experiments/dino/ImageNet/$EXPERIMENT_NAME/dino_communication
 filename=/work/dlclarge2/wagnerd-metassl-experiments/dino/ImageNet/$EXPERIMENT_NAME/dino_communication/$(openssl rand -hex 12)
 
+# Default
 python -m torch.distributed.launch --use_env --nproc_per_node=8 main_dino.py --config_file_path $filename --arch vit_small --data_path /data/datasets/ImageNet/imagenet-pytorch/train --output_dir /work/dlclarge2/wagnerd-metassl-experiments/dino/ImageNet/$EXPERIMENT_NAME --batch_size_per_gpu 32 --saveckp_freq 10 --seed $SEED --is_neps_run \
-	--train_dataset_percentage_usage 1.0 --valid_size 0.1
+ 	--train_dataset_percentage_usage 1.0 --valid_size 0.0 --use_val_as_val --epochs 100 \
+	--use_imagenet_subset
+
+# Use only 10% of the classes
+# python -m torch.distributed.launch --use_env --nproc_per_node=8 main_dino.py --config_file_path $filename --arch vit_small --data_path /work/dlclarge2/wagnerd-metassl-experiments/datasets/ImageNetSubset/10percent/train --output_dir /work/dlclarge2/wagnerd-metassl-experiments/dino/ImageNet/$EXPERIMENT_NAME --batch_size_per_gpu 32 --saveckp_freq 10 --seed $SEED --is_neps_run \
+#        --train_dataset_percentage_usage 1.0 --valid_size 0.1 --use_val_as_val --epochs 5
