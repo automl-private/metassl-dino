@@ -933,6 +933,7 @@ if __name__ == '__main__':
                 max_evaluations_per_run=1,
                 overwrite_working_directory=False,
                 ignore_errors=True,
+                acquisition_sampler="evolution",
                 # eta=4,
                 # early_stopping_rate=1,
             )
